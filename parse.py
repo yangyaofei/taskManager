@@ -100,15 +100,13 @@ def parseToBinList(taskList):
 	data = struct.pack(TASK_HEADER_FORMAT,task_no,task_size)
 	for	task in taskList:
 		#task[2] = long(common.datetimeToTimestamp(task[2]))
-		print("--------")
-		print(task[2])
-		print("--------")
 		data += struct.pack(TASK_ITEM_FORMATE,task[0],task[1],task[2],task[3])
 	return parseToBin("l",data)
 def parseToAddTask(data):
 	offset = struct.calcsize(HEADER_FORMAT)
 	size = len(data)-offset
-	return struct.unpack_from(str(size)+"s",data,offset)
+	data = struct.unpack_from(str(size)+"s",data,offset)
+	return data[0]
 def parseToBinAddTask(data):
 	size = len(data)
 	raw_data = struct.pack(str(size)+"s",data)

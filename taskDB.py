@@ -1,5 +1,6 @@
 #coding:utf-8 
 from peewee import *
+from datetime import datetime , date , tzinfo , timedelta 
 
 db_config = {
      'host': 'localhost',
@@ -20,7 +21,11 @@ class TaskInfo(Model):
 
 def getTaskInfo():
 	return TaskInfo.select()
-def addTaskInfo(task):
+def addTaskInfo(data):
+	task =TaskInfo()
+	task.task_status = "s"
+	task.task_date = datetime.now()
+	task.task_etc = data
 	return task.save()
 def dropTaskInfo(ID):
 	try:

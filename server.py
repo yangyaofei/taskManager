@@ -9,14 +9,10 @@ reload(sys)
 sys.setdefaultencoding("utf-8")
 def dealClient(conn,addr):
 	szBuf = conn.recv(1024); 
-	print("getData") 
+	print("get a request")
 	recv = request.routeRequest(szBuf)
-	print(repr(recv))
 	conn.send(recv)	
-def addTask():
-	print("addTask")
-def listTask():
-	print("listTask")
+	print("respons the request over")
 if "__main__" == __name__:  
 	try:  
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);  

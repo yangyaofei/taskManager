@@ -15,7 +15,8 @@ def routeRequest(raw_data):
 		return over(raw_data);
 
 def addTask(data):
-	print("addTask")
+	data = parse.parseToAddTask(data)
+	taskDB.addTaskInfo(data)
 	raw = parse.parseToBin("a",'')
 	return raw
 def listTask(data):
