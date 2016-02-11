@@ -1,5 +1,6 @@
 #coding:utf-8
 import struct
+import common
 '''
 python格式与二进制数据转换
 +---------------+
@@ -86,6 +87,8 @@ def parseToList(data):
 	offset += struct.calcsize(TASK_HEADER_FORMAT)
 	while(i < task_no):
 		task = struct.unpack_from(TASK_ITEM_FORMATE,data,offset)
+		task = list(task)
+		#task[3] = common.timestampToDatetime(task[3])
 		taskList.append(task)
 		offset += struct.calcsize(TASK_ITEM_FORMATE)
 		i += 1
@@ -96,8 +99,11 @@ def parseToBinList(taskList):
 	task_size = struct.calcsize(TASK_ITEM_FORMATE)
 	data = struct.pack(TASK_HEADER_FORMAT,task_no,task_size)
 	for	task in taskList:
+		#task[2] = long(common.datetimeToTimestamp(task[2]))
+		print("--------")
+		print(task[2])
+		print("--------")
 		data += struct.pack(TASK_ITEM_FORMATE,task[0],task[1],task[2],task[3])
-		print(data)
 	return parseToBin("l",data)
 def parseToAddTask(data):
 	offset = struct.calcsize(HEADER_FORMAT)
