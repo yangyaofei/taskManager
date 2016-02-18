@@ -27,7 +27,7 @@ request:
 大写为向服务器请求用,小写为服务器返回信息
 如果只用返回ok即可的请求,para-size位置置为0 为成功
 
-parameter:
+request and parameter:
 
 A:addTask 
 	为向web请求内容	
@@ -49,11 +49,34 @@ L:listTask
 	task_status	:	char[2]
 	task_date	:	long POSIX timestamp
 	task_etc	:	char[100] 描述任务 必须存在
-G:getResult
-	未编辑 
-O:over
+	--------
+		status 状态转换所有标识:
+		正常执行	a->s->p->c
+		重启后		s->e or s->e
+		编辑后		e->a or a->a
+
+		a:addTask	任务添加,addTask后为a状态,必须手动开始任务才可以,避免重复提交,瞬间执行多个任务
+		s:startTasK	开启任务
+		p:process	执行中,因为有两个char,第二个char可以表示执行过程中的过程)
+		c:complete	任务完成,任务完成后,task_date转换为任务完成时间
+		e:error		出错,可以用 getResult 获取为何出错信息, s和p都可以转换为e
+		u:pause		后期实现 暂停状态,仅p状态下可用
+>>>S:stopTask
+	停止任务,结束相关进程和线程,删除数据库中内容	
+	必须在s , p 状态下停止
+>>>R:restartTask
+	重启任务,e状态可用
+>>>I:editTask
+	编辑任务,在e,a状态下可用,编辑完成后状态为a
+>>>P:pauseTask
+	暂停任务,后期实现<><><><>
+>>>G:getResult
+	获取结果,e状态获取出错信息
+>>>D:deleteResult
+	删除结果,并删除相关任务 in Database
+>>>O:over
 	收到之后直接关闭
-E:err
+>>>E:err
 	发送之后直接断开
 '''
 VERSION = 1
