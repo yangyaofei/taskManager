@@ -4,11 +4,10 @@ import socket
 import thread
 import os
 import sys
-sys.setdefaultencoding("utf-8")
 import getopt
 import logging
 reload(sys)
-
+sys.setdefaultencoding("utf-8")
 import daemon
 import parse
 import request
@@ -49,8 +48,6 @@ for key ,value in optlist:
 		config["log-file"] = value
 config["pid-file"] = config.get("pid-file","/var/run/nlpServer.pid")
 config["log-file"] = config.get("log-file","/var/log/nlpServer.log")
-#print(config)	
-#print(optlist)	
 daemon.daemon_exec(config)
 try:  
 	logging.info("create socket succ!");  

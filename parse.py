@@ -52,15 +52,16 @@ L:listTask
 	--------
 		status 状态转换所有标识:
 		正常执行	a->s->p->c
-		重启后		s->e or s->e
+		重启后		e->a
 		编辑后		e->a or a->a
 
 		a:addTask	任务添加,addTask后为a状态,必须手动开始任务才可以,避免重复提交,瞬间执行多个任务
-		s:startTasK	开启任务
+		s:startTasK	开启任务,并做一定的前期准备工作,1 检查参数正确性 2根据参数获取数据,数据获取成功后转入p状态
 		p:process	执行中,因为有两个char,第二个char可以表示执行过程中的过程)
 		c:complete	任务完成,任务完成后,task_date转换为任务完成时间
 		e:error		出错,可以用 getResult 获取为何出错信息, s和p都可以转换为e
 		u:pause		后期实现 暂停状态,仅p状态下可用
+>>>B:startTask(Begain)
 >>>S:stopTask
 	停止任务,结束相关进程和线程,删除数据库中内容	
 	必须在s , p 状态下停止
