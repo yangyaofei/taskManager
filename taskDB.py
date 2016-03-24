@@ -33,4 +33,7 @@ def dropTaskInfo(ID):
 		return task.delete_instance()
 	except DoesNotExist:
 		return -2
-
+def changeTaskInfo(data):
+	data.save()
+def getTaskInfo(ID):
+	return TaskInfo.get(TaskInfo.task_ID == ID)
