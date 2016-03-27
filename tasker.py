@@ -57,66 +57,47 @@ def taskerStatus(ID,status,message):
 def taskerToError(ID,message):
 	# 转到出错状态 并保存出错原因
 	taskerStatus(ID,'e',message)
-# step为每次获取的ID数
-def getDataProcess(IDs,step,queue):
-	print("sub process")
-	iterator = 0
-	data = []
-	while iterator < len(IDs):
-		if iterator > (len(IDs)-step):
-			data = rawdataDB.getFromIDs(IDs[iterator:])
-			print("queue.put")
-			queue.put(data)
-			print("queue.put end")
-		else:
-			data = rawdataDB.getFromIDs(IDs[iterator:iterator+step])
-			queue.put(data)
-		iterator+=step
-	queue.close()
+def tsakerToComplete(ID):
+	taskerStatus(ID,'c','')
 # start tasker
 def startTasker(task_ID,SQL):
 	zl_IDs = getData(url,generateValues(SQL))
 	error = zl_IDs["message"]
 	zl_IDs = getIDs(zl_IDs) 
 	#test 
-	zl_IDs = [1,2,3,4,5,6,7,8,9,10]
+	i =		3990000
+	while i<4000000:
+		zl_IDs.append(i)
+		i+=1
+	# test end '''
 	if(len(zl_IDs) == 0 ):
 	#	taskerToError(task_ID,"获取数据ID失败! :" + str(error))
 		print(str(error))
 		exit(-1)
-	#Use a prosess to get data from DataBase
+	# Use a prosess to get data from DataBase
 	MAX_QUEUE = 100
 	queue = multiprocessing.Queue(MAX_QUEUE)
-	p = Producer(queue,zl_IDs,3)
-	#t = test(queue)
+	p = Producer(queue,zl_IDs,1000)
 	p.start()
-	#t.start()
-	#p.join()
-	#t.join()
-
 	data = []
-	while queue.empty():
+	# Get data use queue and Process it
+	while True: 
 		print("in while")
-		data = queue.get()
-		if len(data) == 0:
+		dirt = queue.get()
+		if dirt["flag"] == "e":
+			print("get an e flag")
 			break
-		for d in data:
+		for d in dirt["data"]:
 			print(d.id),
+			#print(d.apply_num),
 			print(" "),
 		print("")
 	p.join()
+	
 	#'''
-'''def test(queue):
-	data = []
-	while not queue.empty():
-		print("in while")
-		data = queue.get()
-		for d in data:
-			print(d.id),
-			print(" "),
-		print("")
-'''	
-
+# 生产者 用来从database获取数据,并传输给主进程进行处理
+# 传输数据是一个字典,flag和data,flag为d的时候证明传输的
+# 是数据,当flag的值为e的时候表示数据已经传输完毕
 class Producer(multiprocessing.Process):
 	def __init__(self,queue,zl_IDs,step):
 		multiprocessing.Process.__init__(self)
@@ -125,32 +106,24 @@ class Producer(multiprocessing.Process):
 		self.step = step
 	def run(self):
 		iterator = 0
-		data = []
 		IDs = self.zl_IDs
 		queue = self.queue
 		step = self.step
 		while iterator < len(IDs):
+			data = []
+			dirt = {}
 			if iterator > (len(IDs)-step):
+				print(iterator)
 				data = rawdataDB.getFromIDs(IDs[iterator:])
-				queue.put(data)
 			else:
+				print(str(iterator)+"-"+str(iterator+step))
 				data = rawdataDB.getFromIDs(IDs[iterator:iterator+step])
-				queue.put(data)
+			dirt["flag"] = "d"
+			dirt["data"] = data
+			queue.put(dirt)
 			iterator+=step
+		dirte = {}
+		print("put an e flag")
+		dirte["flag"] = "e"
+		queue.put(dirte)
 		queue.close()
-class test(multiprocessing.Process):
-	def __init__(self,queue):
-		multiprocessing.Process.__init__(self)
-		self.queue = queue
-	def run(self):
-		data = []
-		queue = self.queue
-		while not queue.empty():
-			print("in while")
-			data = queue.get()
-			print("get")
-			for d in data:
-				print(d.id),
-			print("")
-	
-	
