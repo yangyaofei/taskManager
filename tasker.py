@@ -59,12 +59,15 @@ def taskerToError(ID,message):
 	taskerStatus(ID,'e',message)
 # step为每次获取的ID数
 def getDataProcess(IDs,step,queue):
+	print("sub process")
 	iterator = 0
 	data = []
 	while iterator < len(IDs):
 		if iterator > (len(IDs)-step):
 			data = rawdataDB.getFromIDs(IDs[iterator:])
+			print("queue.put")
 			queue.put(data)
+			print("queue.put end")
 		else:
 			data = rawdataDB.getFromIDs(IDs[iterator:iterator+step])
 			queue.put(data)
@@ -75,7 +78,8 @@ def startTasker(task_ID,SQL):
 	zl_IDs = getData(url,generateValues(SQL))
 	error = zl_IDs["message"]
 	zl_IDs = getIDs(zl_IDs) 
-	
+	#test 
+	zl_IDs = [1,2,3,4,5,6,7,8,9,10]
 	if(len(zl_IDs) == 0 ):
 	#	taskerToError(task_ID,"获取数据ID失败! :" + str(error))
 		print(str(error))
@@ -83,16 +87,70 @@ def startTasker(task_ID,SQL):
 	#Use a prosess to get data from DataBase
 	MAX_QUEUE = 100
 	queue = multiprocessing.Queue(MAX_QUEUE)
-	process = multiprocessing.process(target=getDataProcess,args=(IDs,100,queue))
-	process.start()
-	process.join()
+	p = Producer(queue,zl_IDs,3)
+	#t = test(queue)
+	p.start()
+	#t.start()
+	#p.join()
+	#t.join()
+
+	data = []
+	while queue.empty():
+		print("in while")
+		data = queue.get()
+		if len(data) == 0:
+			break
+		for d in data:
+			print(d.id),
+			print(" "),
+		print("")
+	p.join()
+	#'''
+'''def test(queue):
 	data = []
 	while not queue.empty():
+		print("in while")
 		data = queue.get()
 		for d in data:
 			print(d.id),
 			print(" "),
 		print("")
+'''	
+
+class Producer(multiprocessing.Process):
+	def __init__(self,queue,zl_IDs,step):
+		multiprocessing.Process.__init__(self)
+		self.queue = queue
+		self.zl_IDs = zl_IDs
+		self.step = step
+	def run(self):
+		iterator = 0
+		data = []
+		IDs = self.zl_IDs
+		queue = self.queue
+		step = self.step
+		while iterator < len(IDs):
+			if iterator > (len(IDs)-step):
+				data = rawdataDB.getFromIDs(IDs[iterator:])
+				queue.put(data)
+			else:
+				data = rawdataDB.getFromIDs(IDs[iterator:iterator+step])
+				queue.put(data)
+			iterator+=step
+		queue.close()
+class test(multiprocessing.Process):
+	def __init__(self,queue):
+		multiprocessing.Process.__init__(self)
+		self.queue = queue
+	def run(self):
+		data = []
+		queue = self.queue
+		while not queue.empty():
+			print("in while")
+			data = queue.get()
+			print("get")
+			for d in data:
+				print(d.id),
+			print("")
 	
-
-
+	

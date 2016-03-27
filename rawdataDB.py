@@ -1,15 +1,96 @@
 #coding:utf-8 
 from peewee import *
+from playhouse.kv import PickledKeyStore
 #from datetime import datetime , date , tzinfo , timedelta 
-
+class zl_project_data:
+	def __init__(self,zl_project):
+		self.id						=	zl_project.id
+		self.zl_type				=	zl_project.zl_type
+		self.apply_num				=	zl_project.apply_num
+		self.apply_day				=	zl_project.apply_day
+		self.public_num				=	zl_project.public_num
+		self.public_day				=	zl_project.public_day
+		self.name					=	zl_project.name
+		self.main_classnum			=	zl_project.main_classnum
+		self.classnum				=	zl_project.classnum
+		self.priority				=	zl_project.priority
+		self.apply_people			=	zl_project.apply_people
+		self.cp_num					=	zl_project.cp_num
+		self.inventor				=	zl_project.inventor
+		self.international_apply	=	zl_project.international_apply
+		self.international_public	=	zl_project.international_public
+		self.intocountday_day		=	zl_project.intocountday_day
+		self.agency					=	zl_project.agency
+		self.agent					=	zl_project.agent
+		self.category_class			=	zl_project.category_class
+		self.former_applynum		=	zl_project.former_applynum
+		self.award_day				=	zl_project.award_day
+		self.abstractcontent		=	zl_project.abstractcontent
+		self.dominion				=	zl_project.dominion
+		self.apatent_family			=	zl_project.apatent_family
+		self.patent_num				=	zl_project.patent_num
+		self.examinant				=	zl_project.examinant
+		self.instructpic_pagenum	=	zl_project.instructpic_pagenum
+		self.instruction_pagenum	=	zl_project.instruction_pagenum
+		self.require_pagenum		=	zl_project.require_pagenum
+		self.instruction_pic		=	zl_project.instruction_pic
+		self.instruction			=	zl_project.instruction
+		self.right_require			=	zl_project.right_require
+		self.reference_document		=	zl_project.reference_document
+		self.apply_source			=	zl_project.apply_source
+		self.agent_type				=	zl_project.agent_type
+		self.appcountry_num			=	zl_project.appcountry_num
+		self.page_num				=	zl_project.page_num
+		self.release_path			=	zl_project.release_path
+		self.country_classnum		=	zl_project.country_classnum
+		self.country_mainclassnum	=	zl_project.country_mainclassnum
+		self.europe_classnum		=	zl_project.europe_classnum
+		self.europe_mainclassnum	=	zl_project.europe_mainclassnum
+		self.abstractpic_path		=	zl_project.abstractpic_path
+		self.pdfdownloadurl			=	zl_project.pdfdownloadurl
+		self.typenum				=	zl_project.typenum
+	
+		self.field1		=	zl_project.field1	
+		self.field2		=	zl_project.field2
+		self.field3		=	zl_project.field3
+		self.field4		=	zl_project.field4
+		self.field5		=	zl_project.field5
+		self.field6		=	zl_project.field6
+		self.field7		=	zl_project.field7
+		self.field8		=	zl_project.field8
+		self.field9		=	zl_project.field9	
+		self.field10	=	zl_project.field10	
+		self.title1		=	zl_project.title1	
+		self.title2		=	zl_project.title2
+		self.title3		=	zl_project.title3	
+		self.title4		=	zl_project.title4
+		self.title5		=	zl_project.title5
+		self.title6		=	zl_project.title6	
+		self.content1	=	zl_project.content1	
+		self.content2	=	zl_project.content2	
+		self.content3	=	zl_project.content3	
+		self.content4	=	zl_project.content4	
+		self.content5	=	zl_project.content5	
+		self.content6	=	zl_project.content6	
+		self.alltext	=	zl_project.alltext	
+#'''
 db_config = {
-     'host': 'server2.zhchtd.com',
-     'port': 23306,
-     'user': 'zhchtd',
-     'password': 'zhchtd123',
-     'database': 'patent'
- }
-db = MySQLDatabase(**db_config)
+		'host': 'server2.zhchtd.com',
+		'port': 23306,
+		'user': 'zhchtd',
+		'password': 'zhchtd123',
+		'database': 'patent'
+		}
+db_config_lan = {
+		'host': '192.168.1.251',
+		'port': 3306,
+		'user': 'zhchtd',
+		'password': 'zhchtd123',
+		'database': 'patent'
+		}
+
+db = MySQLDatabase(**db_config_lan)
+
 class zl_project(Model):
 
 	id						=	PrimaryKeyField()
@@ -86,8 +167,11 @@ class zl_project(Model):
 		database = db
 
 def getFromID(ID):
-	return zl_project.select().where(zl_project.id == ID)
+	return zl_project.select().where(zl_project.id == ID).get()
 
 def getFromIDs(IDs):
-	return zl_project.select().where(zl_project.id << IDs)
-
+	datas = []	
+	raw_datas = zl_project.select().where(zl_project.id << IDs)
+	for data in raw_datas:
+		datas.append(zl_project_data(data))
+	return datas
