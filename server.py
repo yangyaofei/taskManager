@@ -12,13 +12,26 @@ import daemon
 import parse
 import request
 from logger import logger
-logger.getLogger().setLevel(0)
 def dealClient(conn,addr):
-	szBuf = conn.recv(1024); 
-	logger.info("get a request")
-	recv = request.routeRequest(szBuf)
-	conn.send(recv)	
-	logger.info("respons the request over")
+	try:
+		MAX_SIZE = 1024
+		szBuf = ''
+		while(True):
+			buf = conn.recv(MAX_SIZE)
+			szBuf += buf
+			if(len(buf) < MAX_SIZE):
+				break
+		logger.info("get a request")
+		recv = request.routeRequest(szBuf)
+		lenth = conn.send(recv)
+		conn.close()
+		logger.info("respons the request over,send "+lenth+"data")
+	except:
+		logger.error("error in dealwith client close this connection")
+		conn.close()
+	finally:
+		conn.close()
+
 def printHelp():
 	print("help")
 def printVersion():
@@ -56,12 +69,15 @@ try:
 	logger.info("bind socket succ!");  
 	sock.listen(5);  
 	logger.info("listen succ!");  
- 
+	while True:  
+		logger.info("listen for client...");  
+		conn, addr = sock.accept();  
+		logger.info("get client:"+str(addr)) 
+		thread.start_new_thread(dealClient,(conn,addr))
 except:  
-	logger.error("init socket err!");  
- 
-while True:  
-	logger.info("listen for client...");  
-	conn, addr = sock.accept();  
-    logger.info("get client:"+str(addr));  
-	thread.start_new_thread(dealClient,(conn,addr))
+	logger.error("init socket err!"); 
+	sock.close()
+finally:
+	sock.close() 
+
+

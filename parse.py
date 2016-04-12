@@ -72,16 +72,17 @@ R:restartTask
 >I:editTask
 	编辑任务,在e,a状态下可用,编辑完成后状态为a
 	'''#还需要编写请求部分
-	'''
+'''
 >>>P:pauseTask
 	'''#暂停任务,后期实现<><><><>
-	'''
+'''
 >>>G:getResult
 	获取结果,e状态获取出错信息
 	'''#还需要编写response部分
-	'''
+'''
 D:deleteResult
 	删除结果,并删除相关任务 in Database
+
 '''#先保留 不知道是否这个设计有意义,未实现
 '''
 >>>O:over
@@ -145,7 +146,7 @@ def resposeListTask(taskList):
 	task_size = struct.calcsize(TASK_ITEM_FORMATE)
 	data = struct.pack(TASK_HEADER_FORMAT,task_no,task_size)
 	for	task in taskList:
-		data += struct.pack(TASK_ITEM_FORMATE,task[0],task[1],task[2],task[3]，task[4])
+		data += struct.pack(TASK_ITEM_FORMATE,task[0],task[1],task[2],task[3],task[4])
 	return parseToBin("l",data)
 def parseToAddTask(data):
 	offset = struct.calcsize(HEADER_FORMAT)

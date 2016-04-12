@@ -19,7 +19,7 @@ class TaskInfo(Model):
 		db_table = 'taskInfo'
 		database = db
 
-def getTaskInfo():
+def getAllTaskInfo():
 	return TaskInfo.select()
 def addTaskInfo(data):
 	task =TaskInfo()

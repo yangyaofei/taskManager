@@ -12,29 +12,38 @@ def routeRequest(raw_data):
 		return addTask(raw_data);
 	if(data[1]=="L"):
 		return listTask(raw_data);
+	if(data[1]=="B"):
+		return startTask(raw_data)
+	if(data[1]=="S"):
+		return stopTask(raw_data)
+	if(data[1]=="R"):
+		return restartTask(raw_data)
+	if(data[1]=="I"):
+		return editTask(raw_data)
 	if(data[1]=="G"):
-		return getResult(raw_data);
-	if(data[1]=="O"):
-		return over(raw_data);
+		return getResult(raw_data)
+	if(data[1]=="D"):
+		return deleteResult(raw_data)
 
 def addTask(data):
 	data = parse.parseToAddTask(data)
 	logger.debug("add Task to database")
+	print(data)
 	task_ID = taskDB.addTaskInfo(data)
 	logger.debug("run this Task")
 	taskManager.addTask(task_ID,data)
-	raw = parse.parseToBin("a",'')
+	raw = parse.resposeAddTask()
 	return raw
 def listTask(data):
-	task = taskDB.getTaskInfo()
+	task = taskDB.getAllTaskInfo()
 	taskList = []
 	for i in task:
 		status = i.task_status.encode("utf-8") 
 		date = long(common.datetimeToTimestamp(i.task_date))
 		data = i.task_data.encode("utf-8")
-		error = i.task_error.encode("utf-8")
+		error = str(i.task_error).encode("utf-8")
 		taskList.append([i.task_ID,status,date,data,error])
-	return parse.parseToBinList(taskList)
+	return parse.resposeListTask(taskList)
 def getResult(data):
 	print("gerResult")
 def over(data):
