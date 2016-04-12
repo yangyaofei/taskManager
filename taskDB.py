@@ -13,7 +13,8 @@ class TaskInfo(Model):
 	task_ID		=	PrimaryKeyField()
 	task_status	=	CharField()	
 	task_date	=	DateTimeField()
-	task_etc	=	CharField() 
+	task_data	=	CharField() 
+	task_error	=	CharField()
 	class Meta:
 		db_table = 'taskInfo'
 		database = db
@@ -24,7 +25,8 @@ def addTaskInfo(data):
 	task =TaskInfo()
 	task.task_status = "a"
 	task.task_date = datetime.now()
-	task.task_etc = data
+	task.task_data = data
+	task.task_error= ""
 	task.save()
 	return task.task_ID
 def dropTaskInfo(ID):

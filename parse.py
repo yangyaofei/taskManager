@@ -42,13 +42,14 @@ L:listTask
 	task_no		:	unsign int	ask个数
 	task_size	:	unsign int	每个task item 大小
 	task_item	:	task具体内容结构见下(会修改,以完善)
-	+-----------+-----------+-----------+-----------+
-	|task_ID	|task_status|task_date	|task_etc	|
-	+-----------+-----------+-----------+-----------+
+	+-----------+-----------+-----------+-----------+-----------+
+	|task_ID	|task_status|task_date	|task_data	|task_error	|		
+	+-----------+-----------+-----------+-----------+-----------+
 	task_ID		:	unsign int
 	task_status	:	char[2]
 	task_date	:	long POSIX timestamp
-	task_etc	:	char[100] 描述任务 必须存在
+	task_data	:	char[100] 描述任务 必须存在
+	task_error	:	char[100] 出错信息
 	--------
 		status 状态转换所有标识:
 		正常执行	a->s->p->c
@@ -61,20 +62,28 @@ L:listTask
 		c:complete	任务完成,任务完成后,task_date转换为任务完成时间
 		e:error		出错,可以用 getResult 获取为何出错信息, s和p都可以转换为e
 		u:pause		后期实现 暂停状态,仅p状态下可用
->>>B:startTask(Begain)
->>>S:stopTask
+
+B:startTask(Begain) ID -> ok
+S:stopTask	       ID -> ok
 	停止任务,结束相关进程和线程,删除数据库中内容	
 	必须在s , p 状态下停止
->>>R:restartTask
+R:restartTask		
 	重启任务,e状态可用
->>>I:editTask
+>I:editTask
 	编辑任务,在e,a状态下可用,编辑完成后状态为a
+	'''#还需要编写请求部分
+	'''
 >>>P:pauseTask
-	暂停任务,后期实现<><><><>
+	'''#暂停任务,后期实现<><><><>
+	'''
 >>>G:getResult
 	获取结果,e状态获取出错信息
->>>D:deleteResult
+	'''#还需要编写response部分
+	'''
+D:deleteResult
 	删除结果,并删除相关任务 in Database
+'''#先保留 不知道是否这个设计有意义,未实现
+'''
 >>>O:over
 	收到之后直接关闭
 >>>E:err
@@ -83,7 +92,8 @@ L:listTask
 VERSION = 1
 HEADER_FORMAT = "!IcI"
 TASK_HEADER_FORMAT = "!II"
-TASK_ITEM_FORMATE = "!I2sl100s"
+TASK_ITEM_FORMATE = "!I2sl100s100s"
+TASK_ID_FORMATE = "!I"
 # 主转换函数 转换主结构体 op 1为转换为python 0为转换为c type 数据
 # data 在python中为一个列表
 def parseTo(data,op):
@@ -99,32 +109,43 @@ def parseToBin(request,para_data):
 	data.append(request)
 	data.append(len(para_data))
 	return parseTo(data,0)+para_data
+# 函数命名规则 
+# client --> server		
+#	client	:	parseToBin+***	 data	>>>	bindata
+#	server	:	parseTo+***		bindata	>>>	data
+# server --> client	
+#	client	:	parseTo+***		bindata	>>>	data
+#	server	:	respose+***		data	>>> bindata
+# 参数:data为整个的rawdata
 def parseToList(data):
+	# 从数据头部获取task相关信息
 	offset = struct.calcsize(HEADER_FORMAT)
 	header_data = struct.unpack_from(TASK_HEADER_FORMAT,data,offset)
 	task_no = header_data[0]	
 	task_size = header_data[1]
+	# 没啥用的检查，当时不应该加的，哎，万一有用呢
 	if(task_size <> struct.calcsize(TASK_ITEM_FORMATE)):
 		assert 0
+	# 调整偏移后 解析task部分的数据
 	i = 0
 	taskList = []
 	offset += struct.calcsize(TASK_HEADER_FORMAT)
 	while(i < task_no):
 		task = struct.unpack_from(TASK_ITEM_FORMATE,data,offset)
 		task = list(task)
-		#task[3] = common.timestampToDatetime(task[3])
 		taskList.append(task)
 		offset += struct.calcsize(TASK_ITEM_FORMATE)
 		i += 1
+	# 返回的数据是嵌套的列表结构
 	return taskList
 
-def parseToBinList(taskList):
+def resposeListTask(taskList):
+	# 同上只不过反过来
 	task_no = len(taskList)
 	task_size = struct.calcsize(TASK_ITEM_FORMATE)
 	data = struct.pack(TASK_HEADER_FORMAT,task_no,task_size)
 	for	task in taskList:
-		#task[2] = long(common.datetimeToTimestamp(task[2]))
-		data += struct.pack(TASK_ITEM_FORMATE,task[0],task[1],task[2],task[3])
+		data += struct.pack(TASK_ITEM_FORMATE,task[0],task[1],task[2],task[3]，task[4])
 	return parseToBin("l",data)
 def parseToAddTask(data):
 	offset = struct.calcsize(HEADER_FORMAT)
@@ -135,17 +156,39 @@ def parseToBinAddTask(data):
 	size = len(data)
 	raw_data = struct.pack(str(size)+"s",data)
 	return parseToBin("A",raw_data)	
-# data 为处理好的数据 判断其中内容后直接执行相关请求
-def routeRequest(data):
-	data = parseTo(data,1)
-	if(data[1]=="A"):
-		addTask(data)
-	if(data[1]=="L"):
-		listTask(data)
-	if(data[1]=="G"):
-		getResult(data)
-	if(data[1]=="O"):
-		over(data)
+# 多个仅发送ID的请求，合并处理
+def parseToBinwithID(task_ID,request):
+	data = struct.pack(TASK_ID_FORMATE,task_ID)
+	return parseToBin(request,data)
+def parseToBinStartTask():
+	return parseToBinwithID("B")
+def parseToBinStopTask():
+	return parseToBinwithID("S")
+def parseToBinRestartTask():
+	return parseToBinwithID("R")
+def parseToBinGetResult():
+	return parseToBinwithID("G")
+def parseToBinDeleteResult():
+	return parseToBinwithID("D")
+# 对应上述仅发送的请求的解析
+def paresID(data):
+	offset = struct.calcsize(HEADER_FORMAT)
+	data = struct.unpack_from(TASK_ID_FORMATE,data,offset)
+	return data[0]
 
 
+# 为了统一函数 下面使request不需要参数的部分
+def parseToBinListTask():
+	return parseToBin("L",'')
+# 将返回OK的都写下来，用字符到处写不好
+def resposeAddTask():
+	return parseToBin("a",'')
+def resposeStartTask():
+	return parseToBin("b","")
+def resposeStopTask():
+	return parseToBin("s","")
+def resposeRestartTask():
+	return parseToBin("r","")
+def resposeDeleteResult():
+	return parseToBin("d","")
 

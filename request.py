@@ -1,7 +1,7 @@
 #coding:utf-8
 import parse
 import taskDB 
-import taskerManager
+import taskManager
 import common
 from logger import logger
 # data 为处理好的数据 判断其中内容后直接执行相关请求
@@ -20,9 +20,9 @@ def routeRequest(raw_data):
 def addTask(data):
 	data = parse.parseToAddTask(data)
 	logger.debug("add Task to database")
-	taskDB.addTaskInfo(data)
+	task_ID = taskDB.addTaskInfo(data)
 	logger.debug("run this Task")
-	taskerManager.
+	taskManager.addTask(task_ID,data)
 	raw = parse.parseToBin("a",'')
 	return raw
 def listTask(data):
@@ -30,9 +30,10 @@ def listTask(data):
 	taskList = []
 	for i in task:
 		status = i.task_status.encode("utf-8") 
-		etc = i.task_etc.encode("utf-8")
 		date = long(common.datetimeToTimestamp(i.task_date))
-		taskList.append([i.task_ID,status,date,etc])
+		data = i.task_data.encode("utf-8")
+		error = i.task_error.encode("utf-8")
+		taskList.append([i.task_ID,status,date,data,error])
 	return parse.parseToBinList(taskList)
 def getResult(data):
 	print("gerResult")
