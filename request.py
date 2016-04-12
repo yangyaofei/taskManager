@@ -10,25 +10,24 @@ def routeRequest(raw_data):
 	data = parse.parseTo(raw_data,1)	
 	if(data[1]=="A"):
 		return addTask(raw_data);
-	if(data[1]=="L"):
+	elif(data[1]=="L"):
 		return listTask(raw_data);
-	if(data[1]=="B"):
+	elif(data[1]=="B"):
 		return startTask(raw_data)
-	if(data[1]=="S"):
+	elif(data[1]=="S"):
 		return stopTask(raw_data)
-	if(data[1]=="R"):
+	elif(data[1]=="R"):
 		return restartTask(raw_data)
-	if(data[1]=="I"):
+	elif(data[1]=="I"):
 		return editTask(raw_data)
-	if(data[1]=="G"):
+	elif(data[1]=="G"):
 		return getResult(raw_data)
-	if(data[1]=="D"):
+	elif(data[1]=="D"):
 		return deleteResult(raw_data)
 
 def addTask(data):
 	data = parse.parseToAddTask(data)
 	logger.debug("add Task to database")
-	print(data)
 	task_ID = taskDB.addTaskInfo(data)
 	logger.debug("run this Task")
 	taskManager.addTask(task_ID,data)
@@ -44,8 +43,10 @@ def listTask(data):
 		error = str(i.task_error).encode("utf-8")
 		taskList.append([i.task_ID,status,date,data,error])
 	return parse.resposeListTask(taskList)
-def getResult(data):
-	print("gerResult")
-def over(data):
-	print("over")
+def	startTask(raw_data):
+def stopTask(raw_data):
+def	restartTask(raw_data)
+def	editTask(raw_data):
+def	getResult(raw_data):
+def	deleteResult(raw_data)
 
