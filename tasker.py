@@ -23,10 +23,15 @@ import time
 import rawdataDB
 import multiprocessing
 import taskDB
+from logger import logger
+
 url = "http://server2.zhchtd.com:22280/getprojectjson"
 KEY = "zhuanlikey"
 ID = -1
+MAX_QUEUE = 1000
+
 def getData(url,values):
+	#logger.info("get data from :"+url)
 	data = urllib.urlencode(values)
 	req  = urllib2.Request(url,data)
 	return json.loads(urllib2.urlopen(req).read())
@@ -55,38 +60,48 @@ def taskerStatus(ID,status,message):
 	data.task_etc = message
 	taskDB.changeTask(data)
 def taskerToError(ID,message):
+	#logger.info("taskerToError")
 	# 转到出错状态 并保存出错原因
 	taskerStatus(ID,'e',message)
-def tsakerToComplete(ID):
+def taskerToComplete(ID):
+	#loggrt.g("taskerToComplete")
 	taskerStatus(ID,'c','')
 # start tasker
 def startTasker(task_ID,SQL):
+	taskID_for_log = "taskID:"+str(task_ID)+">>"
+	logger.info(taskID_for_log+"get IDs from url:"+url)
 	zl_IDs = getData(url,generateValues(SQL))
 	error = zl_IDs["message"]
 	zl_IDs = getIDs(zl_IDs) 
-	#test 
+	logger.info(taskID_for_log+"get IDs over")
+	logger.info(taskID_for_log+"We get "+str(len(zl_IDs))+"IDs to run")
+	logger.debug(taskID_for_log+"the IDs is :"+str(zl_IDs))
+	'''#test 
 	i =		3990000
 	while i<4000000:
 		zl_IDs.append(i)
 		i+=1
 	# test end '''
 	if(len(zl_IDs) == 0 ):
-	#	taskerToError(task_ID,"获取数据ID失败! :" + str(error))
-		print(str(error))
+		logger.info(taskID_for_log+"IDs is empty .tasker goto error")
+		taskerToError(task_ID,"获取数据ID失败! :" + str(error))
+		#print(str(error))
+		logger.info(taskID_for_log+"task is exitting")
 		exit(-1)
 	# Use a prosess to get data from DataBase
-	MAX_QUEUE = 100
 	queue = multiprocessing.Queue(MAX_QUEUE)
 	p = Producer(queue,zl_IDs,1000)
+	logger.info(taskID_for_log+"start a process to get data")
 	p.start()
 	data = []
 	# Get data use queue and Process it
 	while True: 
-		print("in while")
+		logger.info(taskID_for_log+"in while to get data from queue")
 		dirt = queue.get()
 		if dirt["flag"] == "e":
-			print("get an e flag")
+			logger.info(taskID_for_log+"get a 'e'flag to end loop")
 			break
+		logger.debug(taskID_for_log+"get data and print")
 		for d in dirt["data"]:
 			print(d.id),
 			#print(d.apply_num),
@@ -105,6 +120,7 @@ class Producer(multiprocessing.Process):
 		self.zl_IDs = zl_IDs
 		self.step = step
 	def run(self):
+		from logger import logger
 		iterator = 0
 		IDs = self.zl_IDs
 		queue = self.queue
@@ -114,16 +130,18 @@ class Producer(multiprocessing.Process):
 			dirt = {}
 			if iterator > (len(IDs)-step):
 				print(iterator)
+				logger.debug("Producer is getting data"+str(iteratot))
 				data = rawdataDB.getFromIDs(IDs[iterator:])
 			else:
-				print(str(iterator)+"-"+str(iterator+step))
+				logger.debug("Producer is getting data"+str(iterator)+"-"+str(iterator+step))
 				data = rawdataDB.getFromIDs(IDs[iterator:iterator+step])
 			dirt["flag"] = "d"
 			dirt["data"] = data
 			queue.put(dirt)
 			iterator+=step
+		logger.debug("Producer get data complete")
 		dirte = {}
-		print("put an e flag")
+		logging.debug("Producer put a 'e'flage to end")
 		dirte["flag"] = "e"
 		queue.put(dirte)
 		queue.close()

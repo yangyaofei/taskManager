@@ -5,20 +5,20 @@ import thread
 import os
 import sys
 import getopt
-import logging
+import logger
 reload(sys)
 sys.setdefaultencoding("utf-8")
 import daemon
 import parse
 import request
-
-logging.getLogger().setLevel(0)
+from logger import logger
+logger.getLogger().setLevel(0)
 def dealClient(conn,addr):
 	szBuf = conn.recv(1024); 
-	logging.info("get a request")
+	logger.info("get a request")
 	recv = request.routeRequest(szBuf)
 	conn.send(recv)	
-	logging.info("respons the request over")
+	logger.info("respons the request over")
 def printHelp():
 	print("help")
 def printVersion():
@@ -50,19 +50,18 @@ config["pid-file"] = config.get("pid-file","/var/run/nlpServer.pid")
 config["log-file"] = config.get("log-file","/var/log/nlpServer.log")
 daemon.daemon_exec(config)
 try:  
-	logging.info("create socket succ!");  
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);  
+	logger.info("create socket succ!");  
 	sock.bind(('localhost', 8001));  
-	logging.info("bind socket succ!");  
-         
-        sock.listen(5);  
-	logging.info("listen succ!");  
+	logger.info("bind socket succ!");  
+	sock.listen(5);  
+	logger.info("listen succ!");  
  
 except:  
-	logging.error("init socket err!");  
+	logger.error("init socket err!");  
  
 while True:  
-	logging.info("listen for client...");  
+	logger.info("listen for client...");  
 	conn, addr = sock.accept();  
-       	logging.info("get client:"+str(addr));  
+    logger.info("get client:"+str(addr));  
 	thread.start_new_thread(dealClient,(conn,addr))
