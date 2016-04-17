@@ -1,10 +1,24 @@
 #coding:utf-8
-def addTask(data):
+import multiprocessing
+import tasker
+'''def addTask(data):
 	#添加数据库  返回 状态为a
 	return 
+'''
+taskerList = []
+def handleTasker()
+	for t in taskerList:
+	# 每次处理进程列表中已经终止的那些
+	# 前期先不管状态如何,后期可以根据退出的状态进行不同的操作
+	# TODO
+		if not t.is_alive:
+			t.join()
+			taskerList.remove(t)
 def startTask():
 	#检查状态是否可以start
 	#修改状态为s fork() execl() 传值ID等
+	p = multiprocessing.Process(target=tasker.startTasker,args=(task_ID))
+	taskerList.append(p)
 	return 
 def stopTask(ID):
 	#根据PID终止进程,修改数据库任务状态 删除相关结果 返回

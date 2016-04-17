@@ -12,6 +12,7 @@ import daemon
 import parse
 import request
 from logger import logger
+import traceback
 def dealClient(conn,addr):
 	try:
 		MAX_SIZE = 1024
@@ -24,11 +25,11 @@ def dealClient(conn,addr):
 		logger.info("get a request")
 		recv = request.routeRequest(szBuf)
 		lenth = conn.send(recv)
-		conn.close()
-		logger.info("respons the request over,send "+lenth+"data")
+		logger.info("respons the request over,send "+str(lenth)+"data")
 	except:
 		logger.error("error in dealwith client close this connection")
-		conn.close()
+		logger.error(traceback.format_exc())
+		traceback.print_exc()
 	finally:
 		conn.close()
 
@@ -75,7 +76,9 @@ try:
 		logger.info("get client:"+str(addr)) 
 		thread.start_new_thread(dealClient,(conn,addr))
 except:  
-	logger.error("init socket err!"); 
+	logger.error("init socket err!");
+	logger.error(traceback.format_exc()) 
+	traceback.print_exc()
 	sock.close()
 finally:
 	sock.close() 

@@ -60,7 +60,8 @@ L:listTask
 		s:startTasK	开启任务,并做一定的前期准备工作,1 检查参数正确性 2根据参数获取数据,数据获取成功后转入p状态
 		p:process	执行中,因为有两个char,第二个char可以表示执行过程中的过程)
 		c:complete	任务完成,任务完成后,task_date转换为任务完成时间
-		e:error		出错,可以用 getResult 获取为何出错信息, s和p都可以转换为e
+		e:error		出错,可以用 getResult 获取为何出错信息, s和p都可以转换为e.改：error的信息可以在task上直接
+					看到，但是考虑到可能一个task可以执行多次，并不是每次的结果都一样，所以，在result里面也写入
 		u:pause		后期实现 暂停状态,仅p状态下可用
 
 B:startTask(Begain) ID -> ok
@@ -73,10 +74,12 @@ R:restartTask
 	编辑任务,在e,a状态下可用,编辑完成后状态为a
 	'''#还需要编写请求部分
 '''
+>>>F:deleteTask'''#忘记了，还没实现
+'''
 >>>P:pauseTask
 	'''#暂停任务,后期实现<><><><>
 '''
->>>G:getResult
+>G:getResult
 	获取结果,e状态获取出错信息
 	'''#还需要编写response部分
 '''
@@ -161,16 +164,16 @@ def parseToBinAddTask(data):
 def parseToBinwithID(task_ID,request):
 	data = struct.pack(TASK_ID_FORMATE,task_ID)
 	return parseToBin(request,data)
-def parseToBinStartTask():
-	return parseToBinwithID("B")
-def parseToBinStopTask():
-	return parseToBinwithID("S")
-def parseToBinRestartTask():
-	return parseToBinwithID("R")
-def parseToBinGetResult():
-	return parseToBinwithID("G")
-def parseToBinDeleteResult():
-	return parseToBinwithID("D")
+def parseToBinStartTask(task_ID):
+	return parseToBinwithID(task_ID,"B")
+def parseToBinStopTask(task_ID):
+	return parseToBinwithID(task_ID,"S")
+def parseToBinRestartTask(task_ID):
+	return parseToBinwithID(task_ID,"R")
+def parseToBinGetResult(task_ID):
+	return parseToBinwithID(task_ID,"G")
+def parseToBinDeleteResult(task_ID):
+	return parseToBinwithID(task_ID,"D")
 # 对应上述仅发送的请求的解析
 def paresID(data):
 	offset = struct.calcsize(HEADER_FORMAT)
@@ -192,4 +195,5 @@ def resposeRestartTask():
 	return parseToBin("r","")
 def resposeDeleteResult():
 	return parseToBin("d","")
-
+def resposeError():
+	return parseToBin("e",'')
