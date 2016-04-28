@@ -1,0 +1,30 @@
+#!/usr/bin/python
+#coding:utf-8
+import parse
+import cgi
+import cgitb
+cgitb.enable()
+import json
+import client
+
+form = cgi.FieldStorage()
+task_ID = form.getvalue("task_ID")
+#需要将ID转换为int
+task_ID = int(task_ID)
+
+data = parse.parseToBinStartTask(task_ID)
+client.send(data)
+data = client.recv()
+# 最好判断一下,防折
+if(len(data) != 0):
+	data = parse.parseTo(data,1)
+
+#client.close()
+
+print "Content-type:application/json\r\n\r"
+if(data[1] == 'b'):
+	respons = {"startTask":True}
+	print(json.dumps(respons))
+else:
+	respons = {"startTask":False}
+	print(json.dumps(respons))
