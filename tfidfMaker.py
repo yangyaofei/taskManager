@@ -4,7 +4,7 @@ import sys
 import tasker
 import tfidfDB
 import multiprocessing
-import rawdataDB
+#import rawdataDB
 import jieba
 import jieba.posseg as pseg
 import logging
@@ -259,14 +259,16 @@ class Producer(multiprocessing.Process):
 		self.name = "Producer"
 		# 一次性传输给消费者的大小 
 	def run(self):
+		import rawdataDB
 		# 初始化ID为最开始的ID
 		ID = startID
 		# 信号量响应
 		signal.signal(signal.SIGTERM,self.exit)
 		# 获取logger
 		self.logger = logger.getLogger(logging.INFO,"tfidf.producer.log")
+		self.logger.info("Processer is start!")
 		# 获取整个表大小
-		DATA_MAXSIZE = rawdataDB.zl_project.select().count()
+		# DATA_MAXSIZE = rawdataDB.zl_project.select().count()
 		# 获取保存的没有完成的任务id和ID进度
 		tID,tIDs = getIDFromFile()
 		#self.logger.info("getID and IDs:"+str(tID)+"-"+str(tIDs))
@@ -283,7 +285,7 @@ class Producer(multiprocessing.Process):
 				for i in sIDs:
 					self.logger.info("处理一些未完成的任务ID:"+str(i))
 					texts = self.getTextsFromID(i)
-					queue.put(texts)
+					self.queue.put(texts)
 		try:
 			#m = "Producer process: "
 			while True:
@@ -293,7 +295,7 @@ class Producer(multiprocessing.Process):
 				texts = self.getTextsFromID(ID)
 				#if 0 == len(text):
 				#	continue
-				queue.put(texts)
+				self.queue.put(texts)
 				self.logger.info(str(ID)+"-"+str(ID+self.size-1)+"/"+str(DATA_MAXSIZE))
 				ID+=self.size
 		except SystemExit:
@@ -311,6 +313,7 @@ class Producer(multiprocessing.Process):
 		texts.append(ID)
 		IDs = range(ID,ID+size-1)
 		# sys.stdout.flush()
+		import rawdataDB
 		datas = rawdataDB.getFromIDs(IDs)
 		for i in datas:
 			texts.append(i.alltext)
@@ -341,6 +344,7 @@ class Consumer(multiprocessing.Process):
 		#signal.signal(signal.SIGTERM,consumer_exit)
 		try:
 			self.logger = logger.getLogger(logging.INFO,"tfidf."+str(self.processNo)+".log")
+			self.logger.info("Consumer_"+str(self.processNo)+" is start!")
 			#self.logger = multiprocessing.get_logger()
 			jieba.setLogLevel(logging.INFO)
 			jieba.load_userdict("/home/yyf/workspace/separate/dict.txt")
@@ -403,11 +407,13 @@ class Consumer_saver(multiprocessing.Process):
 		self.save_queue = save_queue
 		self.name = "Consumer_saver"
 	def run(self):
+		import rawdataDB
 		# 初始化
 		self.ID =  startID
 		self.IDs = set()
 		# 初始化logger
 		self.logger = logger.getLogger(logging.INFO,"tfidf.saver.log")
+		self.logger.info("Saver is start!")
 		# 获取进度,以便吻合发过来的ID
 		# 这个里面获取saveID是有必要的,因为如果在恢复进度时出错,
 		# 再次保存进度需要此ID
@@ -420,7 +426,7 @@ class Consumer_saver(multiprocessing.Process):
 		signal.signal(signal.SIGTERM,self.exit)
 		try:
 			while(True):
-				data = save_queue.get()
+				data = self.save_queue.get()
 				if 0 == len(data):
 					continue
 				if -1 == data[0]:
@@ -454,33 +460,6 @@ class Consumer_saver(multiprocessing.Process):
 		self.logger.info("saver storeID :"+str(self.ID)+"-"+str(self.IDs))
 		setIDToFile(self.ID,self.IDs)
 		sys.exit(0)
-###############################################################
-##
-##	主程序以及全局变量
-###############################################################
-# 主进程的作用:
-#	1.进程管理能力,当子进程出错返回后重启进程
-#	2.在自己被关闭时,等待子进程保存进度
-#	3.deamon化的进程关闭
-#
-################################################################
-################################################################
-##	 全局变量												####
-################################################################
-PROCESS_SIZE = 7 # 处理词所用进程数							####
-# 获取数据库大小											####
-DATA_MAXSIZE = rawdataDB.zl_project.select().count()		####
-# 每次处理,储存,获取的大小.一旦开始不能随意更换				####
-DATA_SIZE = 100# 试验性的,可以调大一点						####
-# tests传输队列大小											####
-QUEUE_MAXSIZE = 2											####
-# datas存储传输队列大小										####
-S_QUEUE_MAXSIZE =1											####
-# 非空数据开始索引											####
-startID = 3512466											####
-															####
-################################################################
-################################################################
 
 ################################################################
 # 重启process方法:
@@ -503,7 +482,7 @@ def clearQueue(queue):
 # 停止所有进程,除了需要保存进度的Consumer_saver,
 # 统一使用SIGKILL终结
 def stopProcesses(processes):
-	clearQueue(save_queue)
+	#clearQueue(save_queue)
 	#save_queue.put([-1,None,None])方法废弃
 
 	log_.info("stop processse")
@@ -546,22 +525,35 @@ def startProcesses(processes):
 	for p in processes[0]:
 		p.start()
 
-def initProcesses():
+def initProcesses(queues):
 	process_list = []
 	for i in xrange(PROCESS_SIZE):
-		process = Consumer(queue,save_queue,str(i))
+		process = Consumer(queues[0],queues[1],str(i))
 		process.daemon = True
 		process_list.append(process)
-	process_saver = Consumer_saver(save_queue)
+	process_saver = Consumer_saver(queues[1])
 	process_saver.daemon = True
-	process_producer = Producer(queue,DATA_SIZE)
+	process_producer = Producer(queues[0],DATA_SIZE)
 	process_producer.daemon = True
 	return [process_list,process_producer,process_saver]
-def restartProcesses(processes):
+
+def restartProcesses(processes,queues):
 	stopProcesses(processes)
-	processes = initProcesses()
+	#time.sleep(20)
+	closeQueue(queues)
+	queues = initQueue()
+	processes = initProcesses(queues)
 	startProcesses(processes)
-	return processes
+	return processes,queues
+
+def closeQueue(queues):
+	queues[0].close()
+	queues[1].close()
+
+def initQueue():
+	queue = multiprocessing.Queue(QUEUE_MAXSIZE)
+	save_queue = multiprocessing.Queue(S_QUEUE_MAXSIZE)
+	return [queue,save_queue]
 
 ############################################################
 # 1 每次启动将pid存入tfidf.pid中,终止程序的时候利用存入的pid
@@ -593,8 +585,15 @@ def killandExit(pid):
 	except OSError:
 			print("stop over")
 			sys.exit(0)
+
+
+###########################################################
+##		MAIN START										 ##
 ###########################################################
 
+
+###########################################################
+# 终止后台程序部分
 # 选项 
 #	-s 程序自己找到PID并且终止
 #	--stop=PID 指定PID终止进程
@@ -625,7 +624,8 @@ if 0 != argvs:
 
 
 
-
+#####################################################
+# 对应上面的终止程序部分,但是词部分是在主程序中执行的
 # SIGTERM信号量 对应函数 终止程序使用
 def sigKillSelf(argv1,argv2):
 	log_.info("exiting ....")
@@ -637,15 +637,48 @@ pid = os.getpid()
 savePidToFile(pid)
 signal.signal(signal.SIGTERM,sigKillSelf)
 
+
+###############################################################
+##
+##	主程序以及全局变量
+###############################################################
+# 主进程的作用:
+#	1.进程管理能力,当子进程出错返回后重启进程
+#	2.在自己被关闭时,等待子进程保存进度
+###############################################################
+#  本来部分是放在最开始部分的但是发现获取数据库总大小部分在关闭
+#  程序的脚本中也会运行,所以把程序段挪到这类
+################################################################
+################################################################
+##	 全局变量												####
+################################################################
+PROCESS_SIZE = 7 # 处理词所用进程数							####
+# 获取数据库大小											####
+DATA_MAXSIZE = 16145057										####
+#rawdataDB.zl_project.select().count()						####
+# 每次处理,储存,获取的大小.一旦开始不能随意更换				####
+DATA_SIZE = 100# 试验性的,可以调大一点						####
+# tests传输队列大小											####
+QUEUE_MAXSIZE = 2											####
+# datas存储传输队列大小										####
+S_QUEUE_MAXSIZE =1											####
+# 非空数据开始索引											####
+startID = 3512466											####
+															####
+################################################################
+################################################################
+
+
 # Get Logger
 log_ = logger.getLogger(logging.INFO,"tfidf.main.log")
 
 log_.info("start process")
 
 # init process
-queue = multiprocessing.Queue(QUEUE_MAXSIZE)
-save_queue = multiprocessing.Queue(S_QUEUE_MAXSIZE)
-processes = initProcesses()
+queues = initQueue()
+#queue = multiprocessing.Queue(QUEUE_MAXSIZE)
+#save_queue = multiprocessing.Queue(S_QUEUE_MAXSIZE)
+processes = initProcesses(queues)
 #process_list,process_producer,process_saver = initProcesses()
 # start process
 startProcesses(processes)
@@ -654,20 +687,20 @@ log_.info("start process over")
 
 try:
 	while True:
+		time.sleep(10)
 		for p in processes[0]:
 			if not p.is_alive():
 				log_.info("Consumer "+p.name+" is stoped Restart Process")
-				processes = restartProcesses(processes)
+				processes,queues = restartProcesses(processes,queues)
 				continue
 		if not processes[1].is_alive():
 			log_.info("Producer is stopped Restart")
-			processes = restartProcesses(processes)
+			processes,queues = restartProcesses(processes,queues)
 			continue
 		if not processes[2].is_alive():
 			log_.info("Saver is stopped Restart")
-			processes = restartProcesses(processes)
+			processes,queues = restartProcesses(processes,queues)
 			continue
-		time.sleep(10)
 except SystemExit:
 	log_.info("process exit with sys.exit()")
 	exit(0)
