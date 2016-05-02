@@ -409,7 +409,7 @@ class Consumer_saver(multiprocessing.Process):
 	def run(self):
 		import rawdataDB
 		# 初始化
-		self.ID =  startID
+		self.ID =  startID-1
 		self.IDs = set()
 		# 初始化logger
 		self.logger = logger.getLogger(logging.INFO,"tfidf.saver.log")

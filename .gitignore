@@ -1,0 +1,6 @@
+*.pyc
+test.py
+.*
+*.log
+*.pid
+*.save
