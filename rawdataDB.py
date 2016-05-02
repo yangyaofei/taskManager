@@ -89,8 +89,8 @@ db_config_lan = {
 		'database': 'patent'
 		}
 
-db = MySQLDatabase(**db_config)
-
+#db = MySQLDatabase(**db_config)
+db = MySQLDatabase(**db_config_lan)
 class zl_project(Model):
 
 	id						=	PrimaryKeyField()

@@ -90,7 +90,7 @@ def mergeWordDict(d1,d2):
 	s2 = set(d2.keys())
 	if len(s1 - s2) != 0:
 		# 理论上d1应该为d2子集,所以如果补集有数据则说明出错了!
-		printandlog("merge error")
+		#printandlog("merge error")
 		return
 	s3 = s2 - s1
 	#d3 = dict((k, d[k]) for k in list(s3) if k in d2)
@@ -198,8 +198,7 @@ def getIDFromFile():
 		if os.path.isfile(index):
 			with open(index) as f:
 				storeID = f.read()
-				if storeID.isdigit():
-					storeID = int(storeID)
+				storeID = int(storeID)
 		if os.path.isfile(indexs):
 			with open(indexs,"rb") as f:
 				storeIDs = pickle.load(f)
@@ -227,14 +226,14 @@ def manageIndex(index,indexs):
 # 根据保存的数据得到没有处理的ID集合放入IDs中
 # 并更新ID到最前面
 def getIDsFromIndex(index,indexs):
-	if startID > index:
+	if startID-DATA_SIZE > index:
 		return -1,set()
 	IDs = set()
 	indexs = set(indexs)
 	while True:
-		index+=DATA_SIZE
 		if 0 == len(indexs):
 			break
+		index+=DATA_SIZE
 		if index not in indexs:
 			IDs.add(index)
 			#IDs.append(index)
@@ -277,7 +276,7 @@ class Producer(multiprocessing.Process):
 		if sID == -1:
 			self.logger.info("新任务,从头执行")
 		else:
-			if sID <= startID:
+			if sID <= startID-DATA_SIZE:
 				self.logger.info("错误的sID,从头开始")
 			else:
 				self.logger.info("获取任务进度成功,在"+str(sID)+"处开始")
@@ -290,13 +289,19 @@ class Producer(multiprocessing.Process):
 			#m = "Producer process: "
 			while True:
 				if DATA_MAXSIZE < ID:
-					break
+					self.logger.info("ID is on "+str(ID)+" Task is over sleep to wait exit")
+					time.sleep(10)
+					continue
 				#self.logger.info("getting texts from ID:"+str(ID))
 				texts = self.getTextsFromID(ID)
 				#if 0 == len(text):
 				#	continue
 				self.queue.put(texts)
-				self.logger.info(str(ID)+"-"+str(ID+self.size-1)+"/"+str(DATA_MAXSIZE))
+				# for log
+				IID = ID/100
+				if IID%10 == 0:
+					self.logger.info(str(ID)+"/"+str(DATA_MAXSIZE))
+				# end
 				ID+=self.size
 		except SystemExit:
 			self.logger.info("process exit with sys.exit()")
@@ -316,6 +321,10 @@ class Producer(multiprocessing.Process):
 		import rawdataDB
 		datas = rawdataDB.getFromIDs(IDs)
 		for i in datas:
+			if type(i.alltext) == type(None):
+				continue
+			if len(i.alltext) == 0:
+				continue
 			texts.append(i.alltext)
 		return texts
 	def exit(self,arg1,arg2):
@@ -347,7 +356,7 @@ class Consumer(multiprocessing.Process):
 			self.logger.info("Consumer_"+str(self.processNo)+" is start!")
 			#self.logger = multiprocessing.get_logger()
 			jieba.setLogLevel(logging.INFO)
-			jieba.load_userdict("/home/yyf/workspace/separate/dict.txt")
+			jieba.load_userdict("dict.txt")
 			while(True):
 				datas = self.queue.get()
 				if 0 == len(datas):
@@ -378,13 +387,14 @@ class Consumer(multiprocessing.Process):
 			words = puncFilter(words,PUNC)
 			words = digitalFilter(words)
 			wordsDict = addWordDict(words,wordsDict)
+			return [ID,wordsDict]
 			self.logger.debug("cut over ID="+str(ID))
-			db_data = tfidfDB.getFromWords(wordsDict.keys())
-			db_data = tfidfDB.tranDataToDict(db_data)
-			d1,d2 = mergeWordDict(db_data,wordsDict)
-			#printError(d1)
-			#printError(d2)
-			return [ID,d1,d2]
+		return [ID,{}]
+			##db_data = tfidfDB.getFromWords(wordsDict.keys())
+			##db_data = tfidfDB.tranDataToDict(db_data)
+			##d1,d2 = mergeWordDict(db_data,wordsDict)
+			## 此处毁灭性一致性错误0.0
+			#return [ID,d1,d2]
 	def exit(self,argv1,argv2):
 		# 没啥用,先放这儿
 		self.logger.info("Consumer exit")
@@ -408,25 +418,34 @@ class Consumer_saver(multiprocessing.Process):
 		self.name = "Consumer_saver"
 	def run(self):
 		import rawdataDB
-		# 初始化
-		self.ID =  startID
-		self.IDs = set()
-		# 初始化logger
-		self.logger = logger.getLogger(logging.INFO,"tfidf.saver.log")
-		self.logger.info("Saver is start!")
-		# 获取进度,以便吻合发过来的ID
-		# 这个里面获取saveID是有必要的,因为如果在恢复进度时出错,
-		# 再次保存进度需要此ID
-		saveID,saveIDs = getIDFromFile()
-		self.logger.info("saver get ID and IDs:"+str(saveID)+"-"+str(saveIDs))	
-		if saveID > 0:
-			self.ID = saveID
-			self.IDs = set(saveIDs)
-		# 设置信号量
-		signal.signal(signal.SIGTERM,self.exit)
+		try:
+			# 初始化
+			self.ID =  startID-DATA_SIZE
+			self.IDs = set()
+			# 初始化logger
+			self.logger = logger.getLogger(logging.INFO,"tfidf.saver.log")
+			self.logger.info("Saver is start!")
+			# 获取进度,以便吻合发过来的ID
+			# 这个里面获取saveID是有必要的,因为如果在恢复进度时出错,
+			# 再次保存进度需要此ID
+			saveID,saveIDs = getIDFromFile()
+			self.logger.info("saver get ID and IDs:"+str(saveID)+"-"+str(saveIDs))	
+			if saveID > 0:
+				self.ID = saveID
+				self.IDs = set(saveIDs)
+			# 设置信号量
+			signal.signal(signal.SIGTERM,self.exit)
+		except:
+			self.logger.info("process exit with sys.exit()")
+			pid = getPidFromFile()
+			killandExit(pid)			
+			self.logger.info("tfidfMaker error!!!! exit!!!!")
+	
 		try:
 			while(True):
 				data = self.save_queue.get()
+				if type(None) == type(data):
+					continue
 				if 0 == len(data):
 					continue
 				if -1 == data[0]:
@@ -434,10 +453,21 @@ class Consumer_saver(multiprocessing.Process):
 					break
 				self.saveData(data)
 				self.IDs.add(data[0])
-				self.logger.info("save over ID="+str(data[0]))
+				#	self.logger.info("save over ID="+str(data[0]))
 				self.ID,self.IDs = manageIndex(self.ID,self.IDs)
+				### log
+				ID_log = self.ID/100
+				if 0 == ID_log%50:
+					self.logger.info("save index on "+str(self.ID))
+				###
 				setIDToFile(self.ID,self.IDs)
 				#self.logger.info("saver storeID :"+str(self.ID)+"-"+str(self.IDs))
+				if self.ID+DATA_SIZE >= DATA_MAXSIZE:
+					self.logger.info("tfidfMaker over!!!! exit!!!!")
+					self.ID = DATA_MAXSIZE
+					self.ID = set()
+					pid = getPidFromFile()
+					killandExit(pid)			
 		except SystemExit:
 			self.logger.info("process exit with sys.exit()")
 			exit(0)
@@ -449,8 +479,13 @@ class Consumer_saver(multiprocessing.Process):
 			self.logger.error(error)
 			exit(-1)
 	def saveData(self,data):
-		d1 = data[1]
-		d2 = data[2]
+		if 0 == len(data[1]):
+			self.logger.info("data is empty skip")
+			return
+		wordsDict = data[1]
+		db_data = tfidfDB.getFromWords(wordsDict.keys())
+                db_data = tfidfDB.tranDataToDict(db_data)
+                d1,d2 = mergeWordDict(db_data,wordsDict)
 		if 0 != len(d1):
 			tfidfDB.updateWords(d1)
 		if 0 != len(d2):

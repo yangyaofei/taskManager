@@ -4,7 +4,7 @@ from playhouse import shortcuts
 db_config = {
 	'host'		: "localhost",
 	'port'		: 3306,
-	'user'		: "root",
+	'user'		: "cnlp",
 	'password'	: "qazwsxedc",
 	'database'	: 'cnlp'
 }
