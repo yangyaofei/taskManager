@@ -440,7 +440,6 @@ class Consumer_saver(multiprocessing.Process):
 			pid = getPidFromFile()
 			killandExit(pid)			
 			self.logger.info("tfidfMaker error!!!! exit!!!!")
-	
 		try:
 			while(True):
 				data = self.save_queue.get()
