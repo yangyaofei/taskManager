@@ -187,7 +187,7 @@ def cut(texts):
 # 如: 3,4,5,7,8,10 则index=5
 # indexs 代表index后已经完成的所有ID的集合
 # 上述数据中 indexs = (7,8,10)
-
+# 自增长度是DATA_SIZE,并不是1
 index = "index.save"
 indexs = "index.s.save"
 # 从文件中获取ID
@@ -258,6 +258,8 @@ class Producer(multiprocessing.Process):
 		self.name = "Producer"
 		# 一次性传输给消费者的大小 
 	def run(self):
+		# 每个进程自己维护自己独立的mysql connection
+		# 如果整个进程树使用一个,会导致重启某个进程后连接断了
 		import rawdataDB
 		# 初始化ID为最开始的ID
 		ID = startID
@@ -289,6 +291,7 @@ class Producer(multiprocessing.Process):
 			#m = "Producer process: "
 			while True:
 				if DATA_MAXSIZE < ID:
+				# 如果任务完成就在这个地方一直循环,直到主进程终结
 					self.logger.info("ID is on "+str(ID)+" Task is over sleep to wait exit")
 					time.sleep(10)
 					continue
@@ -297,7 +300,7 @@ class Producer(multiprocessing.Process):
 				#if 0 == len(text):
 				#	continue
 				self.queue.put(texts)
-				# for log
+				# for log 每1000个打印一次log
 				IID = ID/100
 				if IID%10 == 0:
 					self.logger.info(str(ID)+"/"+str(DATA_MAXSIZE))
@@ -321,6 +324,9 @@ class Producer(multiprocessing.Process):
 		import rawdataDB
 		datas = rawdataDB.getFromIDs(IDs)
 		for i in datas:
+			# 数据库中有可能这个字段使空的,返回的值
+			# 有可能是空或者None,所以做此判断,这个很
+			# 重要,会影响后面的插入,插入和存储空会出错
 			if type(i.alltext) == type(None):
 				continue
 			if len(i.alltext) == 0:
@@ -387,8 +393,9 @@ class Consumer(multiprocessing.Process):
 			words = puncFilter(words,PUNC)
 			words = digitalFilter(words)
 			wordsDict = addWordDict(words,wordsDict)
-			return [ID,wordsDict]
 			self.logger.debug("cut over ID="+str(ID))
+			return [ID,wordsDict]
+		# 如果texts为空的话会返回这个,如果不写则有可能返回None出错
 		return [ID,{}]
 			##db_data = tfidfDB.getFromWords(wordsDict.keys())
 			##db_data = tfidfDB.tranDataToDict(db_data)
@@ -419,7 +426,8 @@ class Consumer_saver(multiprocessing.Process):
 	def run(self):
 		import rawdataDB
 		try:
-			# 初始化
+			# 初始化 初始化时,已经处理完的任务指针应该指向
+			# 第一个ID之前的那个ID,否则会略过第一个
 			self.ID =  startID-DATA_SIZE
 			self.IDs = set()
 			# 初始化logger
@@ -454,13 +462,14 @@ class Consumer_saver(multiprocessing.Process):
 				self.IDs.add(data[0])
 				#	self.logger.info("save over ID="+str(data[0]))
 				self.ID,self.IDs = manageIndex(self.ID,self.IDs)
-				### log
+				### log 每5000打印一个log 
 				ID_log = self.ID/100
 				if 0 == ID_log%50:
 					self.logger.info("save index on "+str(self.ID))
 				###
 				setIDToFile(self.ID,self.IDs)
 				#self.logger.info("saver storeID :"+str(self.ID)+"-"+str(self.IDs))
+				# 如果处理完成 则向主进程发送SIGTREM信号量,并且终结整个进程树
 				if self.ID+DATA_SIZE >= DATA_MAXSIZE:
 					self.logger.info("tfidfMaker over!!!! exit!!!!")
 					self.ID = DATA_MAXSIZE
@@ -478,6 +487,8 @@ class Consumer_saver(multiprocessing.Process):
 			self.logger.error(error)
 			exit(-1)
 	def saveData(self,data):
+		# 如果真个数据集都是空就跳过
+		# 没有这个直接储存空数据集会出错
 		if 0 == len(data[1]):
 			self.logger.info("data is empty skip")
 			return
@@ -552,13 +563,16 @@ def stopProcesses(processes):
 		log_.info("join saver")
 		processes[2].join()
 		log_.info("join over saver")
-	
+# 开启所有子进程
 def startProcesses(processes):
 	processes[2].start()
 	processes[1].start()
 	for p in processes[0]:
 		p.start()
-
+# 初始化子进程实力,此处需要队列已经初始化完成
+# 此处将子进程加入daemon属性,在父进程被终结时
+# 也会随之终结,此方法是为了保险,其实已经写了
+# 所有子进程终结的语句
 def initProcesses(queues):
 	process_list = []
 	for i in xrange(PROCESS_SIZE):
@@ -571,6 +585,10 @@ def initProcesses(queues):
 	process_producer.daemon = True
 	return [process_list,process_producer,process_saver]
 
+# 重启真个进程树
+# 顺序很重要 stop process ->> close queue -->>
+# init queue -->> init process -->> stat process
+# 而且要返回其中的queue和process实例
 def restartProcesses(processes,queues):
 	stopProcesses(processes)
 	#time.sleep(20)
