@@ -73,24 +73,11 @@ class zl_project_data:
 		self.content5	=	zl_project.content5	
 		self.content6	=	zl_project.content6	
 		self.alltext	=	zl_project.alltext	
-#'''
-db_config = {
-		'host': 'server2.zhchtd.com',
-		'port': 23306,
-		'user': 'zhchtd',
-		'password': 'zhchtd123',
-		'database': 'patent'
-		}
-db_config_lan = {
-		'host': '192.168.1.251',
-		'port': 3306,
-		'user': 'zhchtd',
-		'password': 'zhchtd123',
-		'database': 'patent'
-		}
-
+import config
+db_config = config.getRaw()
+print(db_config)
 #db = MySQLDatabase(**db_config)
-db = MySQLDatabase(**db_config_lan)
+db = MySQLDatabase(**db_config)
 class zl_project(Model):
 
 	id						=	PrimaryKeyField()

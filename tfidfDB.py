@@ -1,13 +1,8 @@
 #coding:utf-8
 from peewee import *
 from playhouse import shortcuts
-db_config = {
-	'host'		: "localhost",
-	'port'		: 3306,
-	'user'		: "cnlp",
-	'password'	: "qazwsxedc",
-	'database'	: 'cnlp'
-}
+import config
+db_config = config.getTFIDF()
 db = MySQLDatabase(**db_config)
 class TFIDF_word(Model):
 	TFIDF_id		= PrimaryKeyField()
@@ -18,6 +13,8 @@ class TFIDF_word(Model):
 		db_table = "TFIDF_word"
 		database = db
 def getFromWord(word):
+	if len(word) == 0:
+		return []
 	TFIDF_word.select().where(TFIDF_word.TFIDF_word == word).get()
 def getFromWords(words):
 	#print(TFIDF_word.select().where(TFIDF_word.TFIDF_word << words).sql())
