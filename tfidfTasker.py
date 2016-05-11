@@ -72,7 +72,8 @@ def oneWordFilter(texts):
 def getWordList(words):
 	l = []
 	for i in words:
-		l.append(i.word)
+		if i.flag.find("n") != -1:
+			l.append(i.word)
 	return l
 
 def mergeWordDict(d1,d2):
@@ -142,7 +143,7 @@ def getIDF(wordsList):# 词语列表
 	count = rawdataDB.zl_project.select().count()
 	idf = {}
 	for word in data:
-		idf[word["TFIDF_word"]] = math.log10(float(count)/(word["TFIDF_frq"]+1))
+		idf[data[word]["TFIDF_word"]] = math.log10(float(count)/(data[word]["TFIDF_frq"]+1))
 	return idf
 def getTF(wordsDict):#包括词频的字典
 # 此处有两种计算方法,一个是用所有词的次数为分母
@@ -154,39 +155,78 @@ def getTF(wordsDict):#包括词频的字典
 	return tf
 #
 def getTFIDF(tf,idf):
+	count = rawdataDB.zl_project.select().count()
 	tfidf = {}
 	for i in tf :
-		tfidf[i] = tf[i]*idf[i]
+		if i not in idf:
+			tfidf[i] = tf[i]*math.log10(float(count))
+		else:
+			tfidf[i] = tf[i]*idf[i]
 	return tfidf
 #####################################
 # start tasker
 def startTasker(task_ID,SQL):
+	jieba.load_userdict('dict.txt')
+	step = 10
 	zl_IDs = getter.getData(getter.generateValues(SQL))
 	error = zl_IDs["message"]
 	zl_IDs = getter.getIDs(zl_IDs)
 	print("get IDs over")
 	print(zl_IDs)
-	wordsDict = {}	
-	for ID in zl_IDs:
-		print("."),
-		data = rawdataDB.getFromID(ID)
-		data = removeNULL(data.alltext)
-		data = pseg.cut(data)
-		words = getWordList(data)
-		words = oneWordFilter(words)
-		words = puncFilter(words,PUNC)
-		words = digitalFilter(words)
-		wordsDict = addWordDict(words,wordsDict)
+	wordsDict = {}
+	iterator = len(zl_IDs)/step+1
+	#for test
+	#iterator = 1	
+	for i in xrange(iterator):
+		print("."+str(i)+" "+str(iterator))
+		if (i+1)*step >= len(zl_IDs):
+			data = rawdataDB.getFromIDs(zl_IDs[i*step+1:])
+		else:
+			data = rawdataDB.getFromIDs(zl_IDs[i*step+1:(i+1)*step])
+		print("get Data over")
+		text = []
+		for d in data:
+			if type(d.alltext)!=type(None) and 0 != len(d.alltext):
+				text.append(d.alltext)
+		print("pre process over")
+		for t in text:
+			t = removeNULL(t)
+			words = pseg.cut(t)
+			words = getWordList(words)
+			words = oneWordFilter(words)
+			#words = puncFilter(words,PUNC)
+			#words = digitalFilter(words)
+			wordsDict = addWordDict(words,wordsDict)
+		print("process over")
 	#print(wordsDict)
 	wordsList = wordsDict.keys()
 	idf = getIDF(wordsList)
 	tf = getTF(wordsDict)
 	tfidf = getTFIDF(tf,idf)
-	sorted_tfidf = sorted(tfidf, key=lambda data: data[1], reverse = True)
-	for i in sorted_tfidf[:100]:
-		print sorted_tfidf[i][0],
-		print("		")
-		print sorted_tfidf[i][1]
+	sorted_tfidf = sorted(tfidf, key=lambda data: tfidf[data], reverse = True)
+	sorted_frq = sorted(wordsDict,key=lambda data: wordsDict[data]["TFIDF_sum_frq"],reverse = True)
+	sorted_sum = sorted(wordsDict,key=lambda data: wordsDict[data]["TFIDF_frq"],reverse = True)
+
+	with open("../result/tfidf.txt","w") as f:
+		for i in sorted_tfidf:#[:500]:
+			f.write(i)
+			f.write("		")
+			f.write(str(tfidf[i]))
+			f.write("\n")
+	with open("../result/frq.txt","w") as f:
+		for i in sorted_frq:#[:500]:
+			f.write(i)
+			f.write("		")
+			f.write(str(wordsDict[i]["TFIDF_sum_frq"]))
+			f.write("\n")
+	with open("../result/sum.txt",'w') as f:
+		for i in sorted_sum:#[:500]:
+			f.write(i)
+			f.write("		")
+			f.write(str(wordsDict[i]["TFIDF_frq"]))
+			f.write("\n")
+	
+
 		
 	'''
 	queue = multiprocessing.Queue(MAX_QUEUE)

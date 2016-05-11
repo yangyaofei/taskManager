@@ -75,7 +75,6 @@ class zl_project_data:
 		self.alltext	=	zl_project.alltext	
 import config
 db_config = config.getRaw()
-print(db_config)
 #db = MySQLDatabase(**db_config)
 db = MySQLDatabase(**db_config)
 class zl_project(Model):

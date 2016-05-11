@@ -30,26 +30,35 @@ request:
 request and parameter:
 
 A:addTask 
-	为向web请求内容	
+	+---------------+
+	| request_type	| unsigned char
+	+---------------+
+	/				/ 自定义 根据type
+	/				/
+	+---------------+
 L:listTask 
 	返回时需要:
-	+-----------+-----------+
-	|  task_no	|task_size	| 
+	+-----------------------+
+	|		task_no			| 
 	+-----------------------+
 	/						/
 	/		task_list		/
 	+-----------------------+
-	task_no		:	unsign int	ask个数
-	task_size	:	unsign int	每个task item 大小
-	task_item	:	task具体内容结构见下(会修改,以完善)
-	+-----------+-----------+-----------+-----------+-----------+
-	|task_ID	|task_status|task_date	|task_data	|task_error	|		
-	+-----------+-----------+-----------+-----------+-----------+
-	task_ID		:	unsign int
-	task_status	:	char[2]
-	task_date	:	long POSIX timestamp
-	task_data	:	char[100] 描述任务 必须存在
-	task_error	:	char[100] 出错信息
+	task_no		:	unsign int	task个数
+	task_item	:	task具体内容结构见下
+	+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+	|ID			|name		|create_time|finish_time|type		|status		|size		|data		|para_size	|para		|	
+	+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+	ID			:	unsign int
+	name		:	char[50]
+	create_time	:	long POSIX timestamp
+	finish_time	:	long POSIX timestamp
+	type		:	unsigned char
+	status		:   char
+	size		:	unsigned int
+	data		:	char[size]
+	para_size	:	unsigned int
+	para		:	根据不同type定义不同
 	--------
 		status 状态转换所有标识:
 		正常执行	a->s->p->c
@@ -93,10 +102,10 @@ D:deleteResult
 >>>E:err
 	发送之后直接断开
 '''
-VERSION = 1
+VERSION = 2
 HEADER_FORMAT = "!IcI"
-TASK_HEADER_FORMAT = "!II"
-TASK_ITEM_FORMATE = "!I2sl100s100s"
+TASK_HEADER_FORMAT = "!I"
+TASK_ITEM_FORMATE = "!I50sllBsl" 
 TASK_ID_FORMATE = "!I"
 # 主转换函数 转换主结构体 op 1为转换为python 0为转换为c type 数据
 # data 在python中为一个列表
@@ -126,20 +135,22 @@ def parseToList(data):
 	offset = struct.calcsize(HEADER_FORMAT)
 	header_data = struct.unpack_from(TASK_HEADER_FORMAT,data,offset)
 	task_no = header_data[0]	
-	task_size = header_data[1]
-	# 没啥用的检查，当时不应该加的，哎，万一有用呢
-	if(task_size <> struct.calcsize(TASK_ITEM_FORMATE)):
-		assert 0
 	# 调整偏移后 解析task部分的数据
-	i = 0
 	taskList = []
 	offset += struct.calcsize(TASK_HEADER_FORMAT)
-	while(i < task_no):
+	for i in xrange(task_no):
 		task = struct.unpack_from(TASK_ITEM_FORMATE,data,offset)
 		task = list(task)
-		taskList.append(task)
 		offset += struct.calcsize(TASK_ITEM_FORMATE)
-		i += 1
+		data_size = task[6]
+		mid_task = struct.unpack_from(str(data_size)+"sI",data,)
+		offset += struct.calcsize(str(data_size)+"sI")
+		end_task = struct.unpack_from(str(mid_task(1))+"s",data)
+		offset += struct.calcsize(str(mid_task(1)+"s"))
+		task.append(mid_task(0))
+		task.append(mid_task(1))
+		task.append(end_task(0))
+		taskList.append(task)
 	# 返回的数据是嵌套的列表结构
 	return taskList
 
