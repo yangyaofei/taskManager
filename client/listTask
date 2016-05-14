@@ -1,4 +1,11 @@
 #!/usr/bin/python
+#coding:utf-8
+import sys
+# 使此脚本在任何目录下都可以检测到上一层目录
+# 此处使用一个小技巧,sys.path的第一个地址是当前目录
+# 将其改变即可
+sys.path[0] = sys.path[0].replace("/client","")
+#sys.path.append("..")
 import parse  
 import json
 import common
@@ -8,17 +15,22 @@ client.send(data)
 szBuf = client.recv()
 client.close()
 taskList = parse.parseToList(szBuf)
-List = []
+'''
 for task in taskList:
-	timesamp = common.timestampToDatetime(float(task[2]))
+	create = common.timestampToDatetime(float(task[parse.TASK_KEY[2]]))
+	finish = common.timestampToDatetime(float(task[parse.TASK_KEY[3]]))
 	item = {
-		"task_ID"	:	task[0],
-		"task_state":	task[1],
-		"task_date"	:	timesamp,
-		"task_data"	:	task[3],
-		"task_error":	task[4]
+		"task_ID"	:	task[parse.TASK_KEY[0]],
+		"task_ID"	:	task[parse.TASK_KEY[0]],
+		"task_ID"	:	task[parse.TASK_KEY[0]],
+		"task_ID"	:	task[parse.TASK_KEY[0]],
+		"task_ID"	:	task[parse.TASK_KEY[0]],
+		"task_ID"	:	task[parse.TASK_KEY[0]],
+		"task_ID"	:	task[parse.TASK_KEY[0]],
+		"task_ID"	:	task[parse.TASK_KEY[0]],
 		}
 	List.append(item)
-json_data = json.dumps(List,cls = common.JsonEncoder)
+'''
+json_data = json.dumps(taskList,cls = common.JsonEncoder)
 print "Content-type:application/json\r\n\r"
 print(json_data)  

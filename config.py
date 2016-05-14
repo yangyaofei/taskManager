@@ -1,9 +1,11 @@
-#coding:utf-8
+# coding:utf-8
 import ConfigParser
 cp = ConfigParser.ConfigParser()
 cp.read("config_db.ini")
+
+
 def getDict(section):
-	config = {}	
+	config = {}
 	for s in cp.items(section):
 		if s[1].isdigit():
 			config[s[0]] = int(s[1])
@@ -11,9 +13,10 @@ def getDict(section):
 			config[s[0]] = s[1]
 	return config
 
+
 def getTFIDF():
 	return getDict("tfidf")
 
+
 def getRaw():
 	return getDict("raw")
-

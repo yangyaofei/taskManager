@@ -1,24 +1,24 @@
-#coding:utf-8
-import struct
+# coding:utf-8
 import common
+import json
 '''
 python格式与二进制数据转换
 +---------------+
 |				|
 |				|
-|     version 	| uns int	版本 版本不对 返回version_err
+|	 version 	| uns int	版本 版本不对 返回version_err
 |				|
 +---------------+
-|     request 	| char	请求的类别 
+|	 request 	| char	请求的类别
 +---------------+
 |				|
-|    para-size	| uns int	请求的附加参数长度 0为没有 则结束
+|	para-size	| uns int	请求的附加参数长度 0为没有 则结束
 |				|		只决定参数长度,参数意义由request决定
 |				|
 +---------------+
 |				|
 /				/
-/    parameter	/	char[pata-size]	
+/	parameter	/	char[pata-size]
 /				/	请求附加参数 可选 取决于 request
 |				|
 +---------------+
@@ -29,36 +29,38 @@ request:
 
 request and parameter:
 
-A:addTask 
+A:addTask
 	+---------------+
-	| request_type	| unsigned char
+	| task_type		| unsigned char
 	+---------------+
-	/				/ 自定义 根据type
+	| task_name		|
+	+---------------+
+	/ para_data		/ 自定义 根据type
 	/				/
 	+---------------+
-L:listTask 
+L:listTask
 	返回时需要:
 	+-----------------------+
-	|		task_no			| 
+	|		task_no			|
 	+-----------------------+
 	/						/
 	/		task_list		/
 	+-----------------------+
 	task_no		:	unsign int	task个数
 	task_item	:	task具体内容结构见下
-	+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
-	|ID			|name		|create_time|finish_time|type		|status		|size		|data		|para_size	|para		|	
-	+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+	+-------+-------+-----------+-----------+-------+-------+-------+-------+
+	|ID		|name	|create_time|finish_time|type	|status	|data	|para	|
+	+-------+-------+-----------+-----------+-------+-------+-------+-------+
 	ID			:	unsign int
 	name		:	char[50]
 	create_time	:	long POSIX timestamp
 	finish_time	:	long POSIX timestamp
-	type		:	unsigned char
+	type		:	unsigned char(DataBase int)
 	status		:   char
 	size		:	unsigned int
 	data		:	char[size]
 	para_size	:	unsigned int
-	para		:	根据不同type定义不同
+	para		:	根据不同type定义不同(现阶段为string)
 	--------
 		status 状态转换所有标识:
 		正常执行	a->s->p->c
@@ -72,139 +74,170 @@ L:listTask
 		e:error		出错,可以用 getResult 获取为何出错信息, s和p都可以转换为e.改：error的信息可以在task上直接
 					看到，但是考虑到可能一个task可以执行多次，并不是每次的结果都一样，所以，在result里面也写入
 		u:pause		后期实现 暂停状态,仅p状态下可用
-
+只需要ID的:
+	+-----------+
+	|	task_ID	|
+	+-----------+
 B:startTask(Begain) ID -> ok
-S:stopTask	       ID -> ok
-	停止任务,结束相关进程和线程,删除数据库中内容	
+S:stopTask		   ID -> ok
+	停止任务,结束相关进程和线程,删除数据库中内容
 	必须在s , p 状态下停止
-R:restartTask		
+R:restartTask
 	重启任务,e状态可用
 >I:editTask
 	编辑任务,在e,a状态下可用,编辑完成后状态为a
-	'''#还需要编写请求部分
+	'''
+# 还需要编写请求部分
 '''
->>>F:deleteTask'''#忘记了，还没实现
+>>>F:deleteTask'''
+# 忘记了，还没实现
 '''
 >>>P:pauseTask
-	'''#暂停任务,后期实现<><><><>
+	'''
+# 暂停任务,后期实现<><><><>
 '''
 >G:getResult
 	获取结果,e状态获取出错信息
-	'''#还需要编写response部分
+	'''
+# 还需要编写response部分
 '''
 D:deleteResult
 	删除结果,并删除相关任务 in Database
 
-'''#先保留 不知道是否这个设计有意义,未实现
+'''
+# 先保留 不知道是否这个设计有意义,未实现
 '''
 >>>O:over
 	收到之后直接关闭
 >>>E:err
 	发送之后直接断开
 '''
-VERSION = 2
-HEADER_FORMAT = "!IcI"
-TASK_HEADER_FORMAT = "!I"
-TASK_ITEM_FORMATE = "!I50sllBsl" 
-TASK_ID_FORMATE = "!I"
-# 主转换函数 转换主结构体 op 1为转换为python 0为转换为c type 数据
+VERSION = 3
+MAIN_KEY = ["version", "request", "paramenter"]
+MAIN_TASK = ["task_list"]
+TASK_KEY = [
+	"task_ID", "task_name", "task_create_time", "task_finish_time",
+	"task_type", "task_status", "task_paramenter", "task_data"]
+TASK_ADD = ["taks_type", "task_name", "para_data"]
+TASK_ID = "task_ID"
+
+# 主转换函数
 # data 在python中为一个列表
-def parseTo(data,op):
-	if op:
-		d = struct.unpack_from(HEADER_FORMAT,data)
-		assert(d[0] == VERSION)
-		return d
-	else:
-		return struct.pack(HEADER_FORMAT,data[0],data[1],data[2])
-def parseToBin(request,para_data):
-	data = []
-	data.append(VERSION)
-	data.append(request)
-	data.append(len(para_data))
-	return parseTo(data,0)+para_data
-# 函数命名规则 
-# client --> server		
-#	client	:	parseToBin+***	 data	>>>	bindata
-#	server	:	parseTo+***		bindata	>>>	data
-# server --> client	
-#	client	:	parseTo+***		bindata	>>>	data
-#	server	:	respose+***		data	>>> bindata
+
+
+def parseTo(data):
+	return json.loads(data)
+
+
+def parseToJson(request, para_data=""):
+	data = {}
+	data[MAIN_KEY[0]] = VERSION
+	data[MAIN_KEY[1]] = request
+	if 0 != len(para_data):
+		data[MAIN_KEY[2]] = para_data
+	return json.dumps(data, cls=common.JsonEncoder)
+# 函数命名规则
+# client --> server
+# 	client	:	parseToBin+***	 data	>>>	bindata
+# 	server	:	parseTo+***		bindata	>>>	data
+# server --> client
+# 	client	:	parseTo+***		bindata	>>>	data
+# 	server	:	respose+***		data	>>> bindata
 # 参数:data为整个的rawdata
-def parseToList(data):
-	# 从数据头部获取task相关信息
-	offset = struct.calcsize(HEADER_FORMAT)
-	header_data = struct.unpack_from(TASK_HEADER_FORMAT,data,offset)
-	task_no = header_data[0]	
-	# 调整偏移后 解析task部分的数据
-	taskList = []
-	offset += struct.calcsize(TASK_HEADER_FORMAT)
-	for i in xrange(task_no):
-		task = struct.unpack_from(TASK_ITEM_FORMATE,data,offset)
-		task = list(task)
-		offset += struct.calcsize(TASK_ITEM_FORMATE)
-		data_size = task[6]
-		mid_task = struct.unpack_from(str(data_size)+"sI",data,)
-		offset += struct.calcsize(str(data_size)+"sI")
-		end_task = struct.unpack_from(str(mid_task(1))+"s",data)
-		offset += struct.calcsize(str(mid_task(1)+"s"))
-		task.append(mid_task(0))
-		task.append(mid_task(1))
-		task.append(end_task(0))
-		taskList.append(task)
-	# 返回的数据是嵌套的列表结构
-	return taskList
 
-def resposeListTask(taskList):
-	# 同上只不过反过来
-	task_no = len(taskList)
-	task_size = struct.calcsize(TASK_ITEM_FORMATE)
-	data = struct.pack(TASK_HEADER_FORMAT,task_no,task_size)
-	for	task in taskList:
-		data += struct.pack(TASK_ITEM_FORMATE,task[0],task[1],task[2],task[3],task[4])
-	return parseToBin("l",data)
+
+def parseToList(data):  # JSON to Dict
+	data = parseTo(data)
+	if MAIN_KEY[2] not in data:
+		return []
+	return data[MAIN_KEY[2]][MAIN_TASK[0]]
+
+
+def resposeListTask(taskList):  # 参数是task的dict的list
+	data = {}
+	data[MAIN_TASK[0]] = taskList
+	return parseToJson("l", data)
+
+
 def parseToAddTask(data):
-	offset = struct.calcsize(HEADER_FORMAT)
-	size = len(data)-offset
-	data = struct.unpack_from(str(size)+"s",data,offset)
-	return data[0]
-def parseToBinAddTask(data):
-	size = len(data)
-	raw_data = struct.pack(str(size)+"s",data)
-	return parseToBin("A",raw_data)	
-# 多个仅发送ID的请求，合并处理
-def parseToBinwithID(task_ID,request):
-	data = struct.pack(TASK_ID_FORMATE,task_ID)
-	return parseToBin(request,data)
-def parseToBinStartTask(task_ID):
-	return parseToBinwithID(task_ID,"B")
-def parseToBinStopTask(task_ID):
-	return parseToBinwithID(task_ID,"S")
-def parseToBinRestartTask(task_ID):
-	return parseToBinwithID(task_ID,"R")
-def parseToBinGetResult(task_ID):
-	return parseToBinwithID(task_ID,"G")
-def parseToBinDeleteResult(task_ID):
-	return parseToBinwithID(task_ID,"D")
-# 对应上述仅发送的请求的解析
-def paresID(data):
-	offset = struct.calcsize(HEADER_FORMAT)
-	data = struct.unpack_from(TASK_ID_FORMATE,data,offset)
-	return data[0]
+	if MAIN_KEY[2] not in data:
+		return None
+	return data[MAIN_KEY[2]]
 
+
+def parseToBinAddTask(task_type, task_name, para_data):
+	data = {
+		TASK_ADD[0]: task_type,
+		TASK_ADD[1]: task_name,
+		TASK_ADD[2]: para_data
+	}
+	return parseToJson("A", data)
+# 多个仅发送ID的请求，合并处理
+
+
+def parseToBinwithID(task_ID, request):
+	data = {TASK_ID: task_ID}
+	return parseToJson(request, data)
+
+
+def parseToBinStartTask(task_ID):
+	return parseToBinwithID(task_ID, "B")
+
+
+def parseToBinStopTask(task_ID):
+	return parseToBinwithID(task_ID, "S")
+
+
+def parseToBinRestartTask(task_ID):
+	return parseToBinwithID(task_ID, "R")
+
+
+def parseToBinDeleteTask(task_ID):
+	return parseToBinwithID(task_ID, "F")
+
+
+def parseToBinGetResult(task_ID):
+	return parseToBinwithID(task_ID, "G")
+
+
+def parseToBinDeleteResult(task_ID):
+	return parseToBinwithID(task_ID, "D")
+# 对应上述仅发送的请求的解析
+
+
+def paresID(data):
+	if MAIN_KEY[2] not in data:
+		return None
+	return data[MAIN_KEY[2]][TASK_ID]
 
 # 为了统一函数 下面使request不需要参数的部分
+# TODO 列出Task以后会分类,使列出所有,还是正在进行的,还是已完成的
+
+
 def parseToBinListTask():
-	return parseToBin("L",'')
+	return parseToJson("L", '')
 # 将返回OK的都写下来，用字符到处写不好
+
+
 def resposeAddTask():
-	return parseToBin("a",'')
+	return parseToJson("a", '')
+
+
 def resposeStartTask():
-	return parseToBin("b","")
+	return parseToJson("b", "")
+
+
 def resposeStopTask():
-	return parseToBin("s","")
+	return parseToJson("s", "")
+
+
 def resposeRestartTask():
-	return parseToBin("r","")
+	return parseToJson("r", "")
+
+
 def resposeDeleteResult():
-	return parseToBin("d","")
+	return parseToJson("d", "")
+
+
 def resposeError():
-	return parseToBin("e",'')
+	return parseToJson("e", '')

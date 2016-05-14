@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# THIS MODULE IS COPIED FROM SHADOWSOCKS DAEMON.PY 
+# THIS MODULE IS COPIED FROM SHADOWSOCKS DAEMON.PY
 # and HAVE MODIFIED LITTLE
 #
 # Copyright 2015 clowwindy
@@ -22,8 +22,9 @@ import sys
 import logging
 import signal
 import time
-#import traceback
 import common
+
+
 def daemon_exec(config):
     if 'daemon' in config:
         if os.name != 'posix':
@@ -49,14 +50,11 @@ def daemon_exec(config):
 def write_pid_file(pid_file, pid):
     import fcntl
     import stat
-
     try:
         fd = os.open(pid_file, os.O_RDWR | os.O_CREAT,
                      stat.S_IRUSR | stat.S_IWUSR)
     except OSError as e:
         logging.error(e)
-		#shell.print_exception(e)
-		#traceback.print_exc()
         return -1
     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
     assert flags != -1
@@ -126,8 +124,6 @@ def daemon_start(pid_file, log_file):
         freopen(log_file, 'a', sys.stderr)
     except IOError as e:
         logging.error(e)
-		#traceback.print_exc()
-		#shell.print_exception(e)
         sys.exit(1)
 
 
@@ -141,8 +137,6 @@ def daemon_stop(pid_file):
                 logging.error('not running')
     except IOError as e:
         logging.error(e)
-		#traceback.print_exc()
-		#shell.print_exception(e)
         if e.errno == errno.ENOENT:
             # always exit 0 if we are sure daemon is not running
             logging.error('not running')
@@ -158,8 +152,6 @@ def daemon_stop(pid_file):
                 # always exit 0 if we are sure daemon is not running
                 return
             logging.error(e)
-			#traceback.print_exc()
-			#shell.print_exception(e)
             sys.exit(1)
     else:
         logging.error('pid is not positive: %d', pid)
