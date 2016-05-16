@@ -21,7 +21,7 @@ def routeRequest(raw_data, queue):
 	if data[parse.MAIN_KEY[1]] == "A":
 		return addTask(data)
 	elif data[parse.MAIN_KEY[1]] == "L":
-		return listTask(data)
+		return listTask()
 	elif data[parse.MAIN_KEY[1]] == "B":
 		return startTask(queue, data)
 	elif data[parse.MAIN_KEY[1]] == "S":
@@ -36,18 +36,24 @@ def routeRequest(raw_data, queue):
 		return deleteResult(data)
 
 
+# TODO
+# 需要写一些判断,保证数据真的传过来了
+# 如 addTask中的判断一样
 def addTask(data):
 	data = parse.parseToAddTask(data)
 	name = data[parse.TASK_ADD[1]]
 	type = data[parse.TASK_ADD[0]]
 	para = data[parse.TASK_ADD[2]]
+	if name is None or name is None or type is None or para is None:
+		logger.info("get wrong data")
+		return parse.resposeError()
 	ID = taskDB.addTaskInfo(name, type, para)
 	logger.debug("add Task to database,task_ID:" + str(ID))
 	raw = parse.resposeAddTask()
 	return raw
 
 
-def listTask(data):
+def listTask():
 	task = taskDB.getAllTaskInfo()
 	taskList = []
 	for i in task:
@@ -70,22 +76,34 @@ def listTask(data):
 
 
 def startTask(queue, data):
-	queue.put(data)
 	task_ID = parse.paresID(data)
+	if task_ID is None:
+		return parse.resposeError()
+	queue.put(data)
 	logger.info("startTask task_ID:" + str(task_ID))
 	return parse.resposeStartTask()
 
 
 def stopTask(queue, data):
-	queue.put(data)
 	task_ID = parse.paresID(data)
+	if task_ID is None:
+		return parse.resposeError()
 	queue.put(data)
 	return parse.resposeStopTask()
 
 
 # TODO
-'''def	restartTask(raw_data)
-def	editTask(raw_data):
-def	getResult(raw_data):
-def	deleteResult(raw_data)
-'''
+def restartTask(data):
+	pass
+
+
+def editTask(data):
+	pass
+
+
+def getResult(data):
+	pass
+
+
+def deleteResult(data):
+	pass

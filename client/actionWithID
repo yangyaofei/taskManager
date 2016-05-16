@@ -1,29 +1,26 @@
 #!/usr/bin/python
-#coding:utf-8
+# coding:utf-8
+
+import __init__  # NOQA
 import sys
-# 使此脚本在任何目录下都可以检测到上一层目录
-# 此处使用一个小技巧,sys.path的第一个地址是当前目录
-# 将其改变即可
-sys.path[0] = sys.path[0].replace("/client","")
-
-# 此脚本处理所有的通过ID进行的请求
-#	包括:
-#		startTask		B
-#		stopTask		S
-#		restartTask		R
-#		deleteTask		F
-#		getResult		G
-#		deleteResult	D
-#	参数:
-#	task_ID
-#	request
-
-import parse
 import cgi
 import cgitb
-cgitb.enable()
 import json
 import client
+import parse
+cgitb.enable()
+# 此脚本处理所有的通过ID进行的请求
+# 	包括:
+# 		startTask		B
+# 		stopTask		S
+# 		restartTask		R
+# 		deleteTask		F
+# 		getResult		G
+# 		deleteResult	D
+# 	参数:
+# 	task_ID
+# 	request
+
 
 form = cgi.FieldStorage()
 task_ID = int(form.getvalue("task_ID"))
@@ -34,13 +31,13 @@ if request == "B":
 elif request == "S":
 	data = parse.parseToBinStopTask(task_ID)
 elif request == "R":
-	data = parse.parseToBinRestartTask(Task_ID)
+	data = parse.parseToBinRestartTask(task_ID)
 elif request == "F":
-	data = parse.parseToBinDeleteTask(Task_ID)
-elif request == "G": 
-	data = parse.parseToBinGetResult(Task_ID)
+	data = parse.parseToBinDeleteTask(task_ID)
+elif request == "G":
+	data = parse.parseToBinGetResult(task_ID)
 elif request == "D":
-	data = parse.parseToBinDeleteResult(Task_ID)
+	data = parse.parseToBinDeleteResult(task_ID)
 else:
 	sys.exit(0)
 client.send(data)
@@ -49,12 +46,12 @@ data = client.recv()
 if(len(data) != 0):
 	data = parse.parseTo(data)
 
-#client.close()
+# client.close()
 
 print "Content-type:application/json\r\n\r"
 if(data[parse.MAIN_KEY[1]] == 'b'):
-	respons = {"request":True}
+	respons = {"request": True}
 	print(json.dumps(respons))
 else:
-	respons = {"request":False}
+	respons = {"request": False}
 	print(json.dumps(respons))

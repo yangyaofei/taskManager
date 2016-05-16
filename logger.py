@@ -5,10 +5,10 @@ import logging
 LOG_LEVEL = logging.INFO
 # NOTSET < DEBUG < INFO < WARNING < ERROR < CRITICAL
 LOG_TO = "logger.log"
-format_str = "[%(levelname)s][%(asctime)s][%(process)d:%(processName)s]"
-+"[%(filename)s->%(funcName)s]%(message)s"
-format_str_d = "[%(levelname)s][%(asctime)s][%(process)d:%(processName)s]"
-+"[%(filename)s->%(lineno)d:%(funcName)s]%(message)s"
+format_str = "[%(levelname)s][%(asctime)s][%(process)d:%(processName)s]\
+[%(filename)s->%(funcName)s]%(message)s"
+format_str_d = "[%(levelname)s][%(asctime)s][%(process)d:%(processName)s]\
+[%(filename)s->%(lineno)d:%(funcName)s]%(message)s"
 logger = logging.getLogger('')
 if(len(LOG_TO) == 0):
 	handler = logging.StreamHandler()

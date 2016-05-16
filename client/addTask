@@ -1,31 +1,27 @@
 #!/usr/bin/python
 # coding:utf-8
-# import sys
-# 使此脚本在任何目录下都可以检测到上一层目录
-# 此处使用一个小技巧,sys.path的第一个地址是当前目录
-# 将其改变即可
-# sys.path[0] = sys.path[0].replace("/client", "")
 
+
+import __init__  # NOQA
 import parse
 import cgi
 import cgitb
 import json
-import client
-
+import sockets
 cgitb.enable()
 
 form = cgi.FieldStorage()
 name = form.getvalue("task_name")
 type = form.getvalue("task_type")
 para = form.getvalue("task_para")
-data = parse.parseToBinAddTask(type, name, para.a)
-print(data.aaa)
-client.send(data)
+data = parse.parseToBinAddTask(type, name, para)
+sockets.send(data)
+
+data = sockets.recv()
+data = parse.parseTo(data)
+sockets.close()
 
 print "Content-type:application/json\r\n\r"
-data = client.recv()
-data = parse.parseTo(data)
-client.close()
 if(data[parse.MAIN_KEY[1]] == "a"):
 	respons = {"addTask": True}
 	print(json.dumps(respons))

@@ -2,7 +2,7 @@
 from peewee import Model, MySQLDatabase
 from peewee import PrimaryKeyField, CharField, DateTimeField, IntegerField
 from peewee import DoesNotExist
-import datetime
+from datetime import datetime
 db_config = {
 	'host': 'localhost',
 	'port': 3306,

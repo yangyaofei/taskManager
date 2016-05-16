@@ -163,6 +163,8 @@ def getFromID(ID):
 
 def getFromIDs(IDs):
 	datas = []
+	if 0 == len(IDs):
+		return datas
 	raw_datas = zl_project.select().where(zl_project.id << IDs)
 	for data in raw_datas:
 		datas.append(zl_project_data(data))
