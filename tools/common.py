@@ -1,6 +1,7 @@
 # coding:utf-8
 from datetime import datetime, date, tzinfo, timedelta
 import json
+import os
 
 
 class UTC(tzinfo):
@@ -25,6 +26,12 @@ def timestampToDatetime(timesamp):
 	return datetime.fromtimestamp(timesamp)
 
 
+def getProjectPath():
+	path = os.path.realpath(__file__)
+	path = path.split("tools/common.py")[0]
+	return path
+
+
 class JsonEncoder(json.JSONEncoder):
 
 	def default(self, obj):
@@ -34,21 +41,3 @@ class JsonEncoder(json.JSONEncoder):
 			return obj.strftime('%Y-%m-%d')
 		else:
 			return json.JSONEncoder.default(self, obj)
-#
-# copy from shadowsocks common.py
-# convert bytes and str in daemon.py
-#
-
-
-def to_bytes(s):
-	if bytes != str:
-		if type(s) == str:
-			return s.encode('utf-8')
-	return s
-
-
-def to_str(s):
-	if bytes != str:
-		if type(s) == bytes:
-			return s.decode('utf-8')
-	return s

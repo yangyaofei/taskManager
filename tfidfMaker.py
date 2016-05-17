@@ -185,11 +185,6 @@ def printError(d):
 				print(i)
 
 
-def log(txt):
-	with open("log.log", "a") as f:
-		f.write(txt)
-
-
 def printandlog(t):
 	print(t)
 	with open("log.main.log", "a") as f:
@@ -731,6 +726,8 @@ if 0 != argvs:
 			print("PID is:" + str(pid) + "\nstopping")
 			killandExit(pid)
 
+# TODO 将log等文件保存从相对目录变成绝对目录
+filepath = os.path.realpath(__file__)
 
 #####################################################
 # 对应上面的终止程序部分,但是词部分是在主程序中执行的

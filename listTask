@@ -1,0 +1,25 @@
+#!/usr/bin/python
+# coding:utf-8
+from tools import parse
+from tools import common
+from DB import taskDB
+import json
+
+
+tasks = taskDB.getAllTaskInfo()
+taskList = []
+for task in tasks:
+	item = {
+		parse.TASK_KEY.task_ID: task.task_ID,
+		parse.TASK_KEY.task_name: task.task_name,
+		parse.TASK_KEY.task_create_time: task.task_create_time,
+		parse.TASK_KEY.task_finish_time: task.task_finish_time,
+		parse.TASK_KEY.task_type: task.task_type,
+		parse.TASK_KEY.task_status: task.task_status,
+		parse.TASK_KEY.task_para: task.task_para,
+		parse.TASK_KEY.task_data: task.task_data
+	}
+	taskList.append(item)
+json_data = json.dumps(taskList, cls=common.JsonEncoder)
+print "Content-type:application/json\r\n\r"
+print(json_data)

@@ -1,5 +1,5 @@
 # coding:utf-8
-from tools import socket
+import socket
 from tools import config
 
 """

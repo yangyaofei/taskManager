@@ -1,0 +1,24 @@
+#!/usr/bin/python
+# coding:utf-8
+from tools import parse
+from DB import taskDB
+import cgi
+import cgitb
+import json
+
+cgitb.enable()
+form = cgi.FieldStorage()
+task_ID = form.getvalue(parse.TASK_KEY.task_ID)
+task_name = form.getvalue(parse.TASK_KEY.task_name)
+task_type = form.getvalue(parse.TASK_KEY.task_type)
+task_para = form.getvalue(parse.TASK_KEY.task_para)
+
+task = taskDB.getTaskInfo(int(task_ID))
+task.task_name = task_name
+task.task_type = task_type
+task.task_para = task_para
+taskDB.changeTaskInfo(task)
+respons = {parse.MAIN_KEY.request: parse.REQUEST.ok}
+
+print "Content-type:application/json\r\n\r"
+print(json.dumps(respons))

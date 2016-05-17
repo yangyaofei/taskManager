@@ -1,0 +1,21 @@
+#!/usr/bin/python
+# coding:utf-8
+from tools import parse
+from DB import taskDB
+import cgi
+import cgitb
+import json
+
+cgitb.enable()
+form = cgi.FieldStorage()
+name = form.getvalue(parse.TASK_KEY.task_name)
+type = form.getvalue(parse.TASK_KEY.task_type)
+para = form.getvalue(parse.TASK_KEY.task_para)
+id = taskDB.addTaskInfo(name, type, para)
+respons = {}
+if id is not None:
+	respons = {parse.MAIN_KEY.request: parse.REQUEST.ok}
+else:
+	respons = {parse.MAIN_KEY.request: parse.REQUEST.error}
+print "Content-type:application/json\r\n\r"
+print(json.dumps(respons))

@@ -1,0 +1,70 @@
+#!/usr/bin/python
+# coding:utf-8
+
+import cgi
+import cgitb
+import json
+# from tools import sockets
+from tools import parse
+from tools import common
+from DB import taskDB
+cgitb.enable()
+# 此脚本处理所有的通过ID进行的请求
+# 	包括:
+# 		startTask		B
+# 		stopTask		S
+# 		restartTask		R
+# 		deleteTask		F
+# 		getResult		G
+# 		deleteResult	D
+# 		getTask			C
+# 	参数:
+# 	task_ID
+# 	request
+
+
+form = cgi.FieldStorage()
+task_ID = int(form.getvalue(parse.TASK_KEY.task_ID))
+request = form.getvalue(parse.MAIN_KEY.request)
+respons = {}
+if request == parse.REQUEST.startTask:
+	data = parse.parseToBinStartTask(task_ID)
+	# TODO
+elif request == parse.REQUEST.stopTask:
+	data = parse.parseToBinStopTask(task_ID)
+	# TODO
+elif request == parse.REQUEST.getTask:
+	task = taskDB.getTaskInfo(int(task_ID))
+	respons = {
+		parse.TASK_KEY.task_ID: task.task_ID,
+		parse.TASK_KEY.task_data: task.task_data,
+		parse.TASK_KEY.task_status: task.task_status,
+		parse.TASK_KEY.task_name: task.task_name,
+		parse.TASK_KEY.task_para: task.task_para,
+		parse.TASK_KEY.task_type: task.task_type,
+		parse.TASK_KEY.task_create_time: task.task_create_time,
+		parse.TASK_KEY.task_finish_time: task.task_finish_time
+	}
+elif request == parse.REQUEST.restartTask:
+	task = taskDB.getTaskInfo(int(task_ID))
+	if task.task_status != parse.TASK_STATUS.error:
+		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
+	else:
+		task.task_status = parse.TASK_STATUS.addTask
+		taskDB.changeTaskInfo(task)
+		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
+elif request == parse.REQUEST.deleteTask:
+	task = taskDB.getTaskInfo(int(task_ID))
+	if task.task_status == parse.TASK_STATUS.addTask or \
+		task.task_status == parse.TASK_STATUS.error:
+		taskDB.dropTaskInfo(int(task_ID))
+		request[parse.MAIN_KEY.request] = parse.REQUEST.ok
+	else:
+		request[parse.MAIN_KEY.request] = parse.REQUEST.error
+elif request == parse.REQUEST.getResult:
+	pass  # TODO
+elif request == parse.REQUEST.deleteResult:
+	pass  # TODO
+
+print "Content-type:application/json\r\n\r"
+print(json.dumps(respons, cls=common.JsonEncoder))

@@ -36,7 +36,10 @@ def addTaskInfo(task_name, task_type, task_para):
 	task = TaskInfo()
 	task.task_name = task_name
 	task.task_create_time = datetime.now()
-	task.task_type = task_type
+	if type(task_type) is not int and task_type is not None:
+		if not task_type.isdigit():
+			return -1
+	task.task_type = int(task_type)
 	task.task_status = "a"
 	task.task_para = task_para
 	task.save()
