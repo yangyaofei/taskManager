@@ -1,7 +1,7 @@
 #  coding:utf-8
 from peewee import Model, MySQLDatabase, PrimaryKeyField, CharField, TextField
 from peewee import IntegerField
-import config
+import db_config
 
 
 class zl_project_data:
@@ -76,7 +76,7 @@ class zl_project_data:
 		self.content6 = zl_project.content6
 		self.alltext = zl_project.alltext
 
-db_config = config.getRaw()
+db_config = db_config.getRaw()
 db = MySQLDatabase(**db_config)
 
 

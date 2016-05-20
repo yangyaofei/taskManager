@@ -53,7 +53,8 @@ cgi处,json通讯,参数list_type,返回json,参数同字段名词
 
 ### restartTask
 
-只有处于"e"出错状态的任务才能被重启,重启后任务状态为"a"
+只有处于"e"出错状态的任务才能被重启,重启后任务状态为"a",
+并将task_data清空
 cgi处理,json通讯,参数task_ID
 
 ### task状态定义

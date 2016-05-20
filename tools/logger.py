@@ -1,10 +1,11 @@
 # coding:utf-8
 import logging
+import common
 
-
+project_path = common.getProjectPath()
 LOG_LEVEL = logging.INFO
 # NOTSET < DEBUG < INFO < WARNING < ERROR < CRITICAL
-LOG_TO = "logger.log"
+LOG_TO = project_path + "log/logger.log"
 format_str = "[%(levelname)s][%(asctime)s][%(process)d:%(processName)s]\
 [%(filename)s->%(funcName)s]%(message)s"
 format_str_d = "[%(levelname)s][%(asctime)s][%(process)d:%(processName)s]\

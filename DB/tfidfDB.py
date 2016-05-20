@@ -2,10 +2,10 @@
 from peewee import Model, MySQLDatabase
 from peewee import PrimaryKeyField, CharField, IntegerField
 from playhouse import shortcuts
-import config
+import db_config
 
 
-db_config = config.getTFIDF()
+db_config = db_config.getTFIDF()
 db = MySQLDatabase(**db_config)
 
 

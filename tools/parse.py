@@ -61,14 +61,6 @@ def parseToJson(request, para_data=""):
 	if 0 != len(para_data):
 		data[MAIN_KEY.patamenter] = para_data
 	return json.dumps(data, cls=common.JsonEncoder)
-# 函数命名规则
-# client --> server
-# 	client	:	parseToBin+***	 data	>>>	bindata
-# 	server	:	parseTo+***		bindata	>>>	data
-# server --> client
-# 	client	:	parseTo+***		bindata	>>>	data
-# 	server	:	respose+***		data	>>> bindata
-# 参数:data为整个的rawdata
 
 
 def parseToBinwithID(task_ID, request):
@@ -77,11 +69,11 @@ def parseToBinwithID(task_ID, request):
 
 
 def parseToBinStartTask(task_ID):
-	return parseToBinwithID(task_ID, "B")
+	return parseToBinwithID(task_ID, REQUEST.startTask)
 
 
 def parseToBinStopTask(task_ID):
-	return parseToBinwithID(task_ID, "S")
+	return parseToBinwithID(task_ID, REQUEST.stopTask)
 
 
 def paresID(data):
@@ -90,13 +82,9 @@ def paresID(data):
 	return data[MAIN_KEY.patamenter][TASK_KEY.task_ID]
 
 
-def resposeStartTask():
-	return parseToJson("b", "")
+def responseOK():
+	return parseToJson(REQUEST.ok, "")
 
 
-def resposeStopTask():
-	return parseToJson("s", "")
-
-
-def resposeError():
-	return parseToJson("e", '')
+def responseError():
+	return parseToJson(REQUEST.error, '')

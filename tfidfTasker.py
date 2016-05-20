@@ -1,161 +1,11 @@
 # coding:utf-8
 # 此模块用于TFIDF 关键词提取task执行
-import rawdataDB
-import rawdataGetter as getter
-import taskDB
-import jieba
-import jieba.posseg as pseg
-import tfidfDB
 import math
-
-#####################################
-# 后期将这部分写入一个文件
-#####################################
-
-
-def taskerStatus(ID, status, message):
-	data = taskDB.getTaskInfo(ID)
-	data.task_status = status
-	data.task_etc = message
-	taskDB.changeTask(data)
-
-
-def taskerToError(ID, message):
-	# logger.info("taskerToError")
-	# 转到出错状态 并保存出错原因
-	taskerStatus(ID, 'e', message)
-
-
-def taskerToComplete(ID):
-	# loggrt.g("taskerToComplete")
-	taskerStatus(ID, 'c', '')
-
-#####################################
-# END
-############################################################
-# 	文本处理部分
-
-
-# 去掉没用的空格 Tab \r <br>
-def removeNULL(data):
-	data = data.replace("\r", "")
-	data = data.replace("\n", "")
-	data = data.replace("\t", "")
-	data = data.replace("<br >", "\n")
-	data = data.replace("<br />", "\n")
-	data = data.replace(" ", "")
-	return data
-
-# 下面三个函数是用来去掉没用的词的函数 参数都是词组成的list
-PUNC = u'''，。《》？“”‘’：；！、,.<>?"':;!(）()'''
-
-
-# 出现标点就去掉
-def puncFilter(wordsList, punc):
-	for p in PUNC:
-		i = 0
-		while i < len(wordsList):
-			if wordsList[i].find(p) != -1:
-				del wordsList[i]
-				continue
-			i += 1
-	return wordsList
-
-
-def digitalFilter(wordsList):
-	i = 0
-	while i < len(wordsList):
-		if wordsList[i].isdigit():
-			del wordsList[i]
-			continue
-		i += 1
-	return wordsList
-
-
-# 去掉长度为1的词
-def oneWordFilter(texts):
-	i = 0
-	while i < len(texts):
-		if 1 >= len(texts[i]):
-			del texts[i]
-			continue
-		i += 1
-	return texts
-
-
-# 从切词结果得到词组成的list
-def getWordList(words):
-	l = []
-	for i in words:
-		if i.flag.find("n") != -1:
-			l.append(i.word)
-	return l
-
-
-def mergeWordDict(d1, d2):
-	# d1 数据库数据 d2 准备添加数据
-	# 返回值为两个,第一个是两部分交集部分的合并(需要update)
-	# 			   第二个是两个的异或部分(需要insert)
-	s1 = set(d1.keys())
-	s2 = set(d2.keys())
-	if len(s1 - s2) != 0:
-		# 理论上d1应该为d2子集,所以如果补集有数据则说明出错了!
-		# printandlog("merge error")
-		return
-	s3 = s2 - s1
-	# d3 = dict((k, d[k]) for k in list(s3) if k in d2)
-	d3 = {}
-	for i in set(s3):
-		d3[i] = d2[i]
-	for i in d1:
-		d1[i]["TFIDF_frq"] += d2[i]["TFIDF_frq"]
-		d1[i]["TFIDF_sum_frq"] += d2[i]["TFIDF_sum_frq"]
-	return d1, d3
-
-
-# 列表 如果第二个参数值,则加入到字典中,并返回
-def addWordDict(texts, wordsDict=None):
-	newWordDict = makeWordDict(texts)
-	if wordsDict is not None:
-		for i in newWordDict:
-			if i in wordsDict:
-				wordsDict[i]["TFIDF_sum_frq"] += newWordDict[i]["TFIDF_sum_frq"]
-				wordsDict[i]["TFIDF_frq"] += 1
-			else:
-				wordsDict[i] = {}
-				wordsDict[i]["TFIDF_sum_frq"] = newWordDict[i]["TFIDF_sum_frq"]
-				wordsDict[i]["TFIDF_frq"] = 1
-				wordsDict[i]["TFIDF_word"] = i
-		return wordsDict
-	else:
-		return newWordDict
-
-
-# 仅将其构造成字典,以便统计
-def makeWordDict(text):
-	wordsDict = {}
-	for i in text:
-		# 因为数据库中有50长度限制,而词长度不会超过50
-		# 所以超过的,直接丢弃
-		if 50 <= len(i):
-			continue
-		if i in wordsDict:
-			wordsDict[i]["TFIDF_sum_frq"] += 1
-		else:
-			wordsDict[i] = {}
-			wordsDict[i]["TFIDF_sum_frq"] = 1
-			wordsDict[i]["TFIDF_frq"] = 1
-			wordsDict[i]["TFIDF_word"] = i
-	return wordsDict
-
-
-def cut(texts):
-	texts = pseg.cut(texts)
-	return texts
-#
-#
-############################################################
-#
+from DB import tfidfDB
+from DB import rawdataDB
+from tfidf import tools
+import tasker
+from tools import parse_IDs
 
 
 # 参数:词语列表
@@ -165,20 +15,27 @@ def getIDF(wordsList):
 	count = rawdataDB.zl_project.select().count()
 	idf = {}
 	for word in data:
-		idf[data[word]["TFIDF_word"]] =\
-			math.log10(float(count) / (data[word]["TFIDF_frq"] + 1))
+		idf[word] = math.log10(float(count) / (data[word][tools.tfidf_key.frq] + 1))
 	return idf
 
 
 # 参数:包括词频的字典
-# 此处有两种计算方法,一个是用所有词的次数为分母
-# 一个是用最好词的词频作为分母,最终效果应该一样
 # 此处不使用,直接用词频
 def getTF(wordsDict):
 	tf = {}
 	for word in wordsDict:
-		tf[word] = wordsDict[word]["TFIDF_sum_frq"]
+		tf[word] = wordsDict[word][tools.tfidf_key.sum_frq]
 	return tf
+
+
+def getIDF_2(wordsList, sub_sum):
+	data = tfidfDB.getFromWords(wordsList)
+	data = tfidfDB.tranDataToDict(data)
+	count = rawdataDB.zl_project.select().count()
+	idf = {}
+	for word in data:
+		idf[word] = float(count) / (data[word][tools.tfidf_key.sum_frq])
+	return idf
 
 
 def getTFIDF(tf, idf):
@@ -196,21 +53,22 @@ def getTFIDF(tf, idf):
 
 
 def startTasker(task_ID, SQL):
-	jieba.load_userdict('dict.txt')
-	step = 10
-	zl_IDs = getter.getData(getter.generateValues(SQL))
+	step = 100
+
+	zl_IDs = parse_IDs.getData(parse_IDs.generateValues(SQL))
 	error = zl_IDs["message"]
 	print(error)
-	zl_IDs = getter.getIDs(zl_IDs)
+	zl_IDs = parse_IDs.getIDs(zl_IDs)
 	print("get IDs over")
 	print(zl_IDs)
+
 	wordsDict = {}
 	iterator = len(zl_IDs) / step
+
 	if len(zl_IDs) % step != 0:
 		iterator += 1
+
 	print len(zl_IDs)
-	# for test
-	# iterator = i
 	for i in xrange(iterator):
 		print("." + str(i) + " " + str(iterator))
 		if (i + 1) * step >= len(zl_IDs):
@@ -225,26 +83,26 @@ def startTasker(task_ID, SQL):
 				text.append(d.alltext)
 		print("pre process over")
 		for t in text:
-			t = removeNULL(t)
-			words = pseg.cut(t)
-			words = getWordList(words)
-			words = oneWordFilter(words)
+			t = tasker.removeNULL(t)
+			words = tasker.getWordList(t)
+			words = tasker.oneWordFilter(words)
 			if 0 == len(words):
 				continue
-			# words = puncFilter(words,PUNC)
-			# words = digitalFilter(words)
-			wordsDict = addWordDict(words, wordsDict)
+			wordsDict = tools.addWordDict(words, wordsDict)
 		print("process over")
 	# print(wordsDict)
 	wordsList = wordsDict.keys()
 	idf = getIDF(wordsList)
+	idf_2 = getIDF(wordsList)
 	tf = getTF(wordsDict)
 	tfidf = getTFIDF(tf, idf)
+	tfidf_2 = getTFIDF(tf, idf_2)
 	sorted_tfidf = sorted(tfidf, key=lambda data: tfidf[data], reverse=True)
 	sorted_frq = sorted(
 		wordsDict, key=lambda data: wordsDict[data]["TFIDF_sum_frq"], reverse=True)
 	sorted_sum = sorted(
 		wordsDict, key=lambda data: wordsDict[data]["TFIDF_frq"], reverse=True)
+	sorted_tfidf_2 = sorted(tfidf_2, key=lambda data: tfidf_2[data], reverse=True)
 
 	with open("../result/tfidf.txt", "w") as f:
 		for i in sorted_tfidf:  # [:500]:
@@ -263,6 +121,12 @@ def startTasker(task_ID, SQL):
 			f.write(i)
 			f.write("		")
 			f.write(str(wordsDict[i]["TFIDF_frq"]))
+			f.write("\n")
+	with open("../result/tfidf_2.txt", "w") as f:
+		for i in sorted_tfidf_2:  # [:500]:
+			f.write(i)
+			f.write("		")
+			f.write(str(tfidf[i]))
 			f.write("\n")
 
 

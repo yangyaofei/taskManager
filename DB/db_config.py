@@ -1,7 +1,10 @@
 # coding:utf-8
 import ConfigParser
+import os
+
+realpath = os.path.realpath(__file__).split("db_config")[0]
 cp = ConfigParser.ConfigParser()
-cp.read("config_db.ini")
+cp.read(realpath + "db_config.ini")
 
 
 def getDict(section):

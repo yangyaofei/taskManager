@@ -4,7 +4,7 @@
 import cgi
 import cgitb
 import json
-# from tools import sockets
+from tools import sockets
 from tools import parse
 from tools import common
 from DB import taskDB
@@ -29,10 +29,16 @@ request = form.getvalue(parse.MAIN_KEY.request)
 respons = {}
 if request == parse.REQUEST.startTask:
 	data = parse.parseToBinStartTask(task_ID)
-	# TODO
+	socket = sockets.connectServer()
+	socket.send(data)
+	data = sockets.recv(socket)
+	respons = json.loads(data)
 elif request == parse.REQUEST.stopTask:
 	data = parse.parseToBinStopTask(task_ID)
-	# TODO
+	socket = sockets.connectServer()
+	socket.send(data)
+	data = sockets.recv(socket)
+	respons = json.loads(data)
 elif request == parse.REQUEST.getTask:
 	task = taskDB.getTaskInfo(int(task_ID))
 	respons = {
@@ -51,6 +57,7 @@ elif request == parse.REQUEST.restartTask:
 		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
 	else:
 		task.task_status = parse.TASK_STATUS.addTask
+		task.task_data = ""
 		taskDB.changeTaskInfo(task)
 		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
 elif request == parse.REQUEST.deleteTask:
