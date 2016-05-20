@@ -84,3 +84,10 @@ def updateWords(words):
 	# .where(TFIDF_word.TFIDF_word << words_frq.keys())
 	query.execute()
 	# query_sum_frq.execute()
+
+
+class TFIDF_key():
+	id = "TFIDF_id"
+	word = "TFIDF_word"
+	frq = "TFIDF_frq"
+	sum_frq = "TFIDF_sum_frq"

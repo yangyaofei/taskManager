@@ -23,3 +23,7 @@ def getTFIDF():
 
 def getRaw():
 	return getDict("raw")
+
+
+def getTaskResult():
+	return getDict("taskResult")

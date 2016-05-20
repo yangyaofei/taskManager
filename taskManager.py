@@ -83,7 +83,9 @@ class TaskerManager(multiprocessing.Process):
 			tasker.taskerToError(task_ID, "stopTask error No such task")
 			self.lock.release()
 			return
-		self.taskerList[task_ID].tereminal()
+		logger.info("stopTask :" + str(task_ID))
+		self.taskerList[task_ID].terminate()
+		logger.info("stopTask over")
 		self.taskerList[task_ID].join()
 		del self.taskerList[task_ID]
 		self.lock.release()

@@ -24,7 +24,7 @@ class TASK_KEY:
 
 class TASK_STATUS:
 	addTask = "a"
-	startTasK = "s"
+	startTask = "s"
 	process = "p"
 	complete = "c"
 	error = "e"
@@ -42,7 +42,6 @@ class REQUEST:
 	deleteTask = "F"
 	pauseTask = "P"
 	getResult = "G"
-	deleteResult = "D"
 	ok = "o"
 	error = "e"
 

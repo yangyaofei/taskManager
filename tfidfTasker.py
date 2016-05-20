@@ -3,9 +3,52 @@
 import math
 from DB import tfidfDB
 from DB import rawdataDB
+from DB import taskResultDB
+from tools.logger import logger
 from tfidf import tools
 import tasker
+import sys
 from tools import parse_IDs
+
+
+# words是一个字典,值为权重
+def saveToResult(task_ID, words, resultType):
+	saveList = []
+	for i in words:
+		item = {
+			taskResultDB.resultKey.task_ID: task_ID,
+			taskResultDB.resultKey.weight_type: resultType,
+			taskResultDB.resultKey.word: i,
+			taskResultDB.resultKey.word_weight: words[i]
+		}
+		saveList.append(item)
+	taskResultDB.addResult(saveList)
+
+
+# tfidf格式字典保存,两个都保存
+# 注意使tfidf格式的字典的保存,不是tfidf算法的数据的保存
+def saveTFIDFToResult(task_ID, wordsDict):
+	frqList = []
+	frqsumList = []
+	for i in wordsDict:
+		item_frq = {
+			taskResultDB.resultKey.task_ID: task_ID,
+			taskResultDB.resultKey.weight_type: taskResultDB.resultType.FRQ_COUNT,
+			taskResultDB.resultKey.word: i,
+			taskResultDB.resultKey.word_weight:
+				wordsDict[i][tfidfDB.TFIDF_key.frq]
+		}
+		item_frq_sum = {
+			taskResultDB.resultKey.task_ID: task_ID,
+			taskResultDB.resultKey.weight_type: taskResultDB.resultType.FRQ_SUM,
+			taskResultDB.resultKey.word: i,
+			taskResultDB.resultKey.word_weight:
+				wordsDict[i][tfidfDB.TFIDF_key.sum_frq]
+		}
+		frqList.append(item_frq)
+		frqList.append(item_frq_sum)
+	taskResultDB.addResult(frqList)
+	taskResultDB.addResult(frqsumList)
 
 
 # 参数:词语列表
@@ -24,7 +67,7 @@ def getIDF(wordsList):
 def getTF(wordsDict):
 	tf = {}
 	for word in wordsDict:
-		tf[word] = wordsDict[word][tools.tfidf_key.sum_frq]
+		tf[word] = wordsDict[word][tfidfDB.TFIDF_key.sum_frq]
 	return tf
 
 
@@ -34,7 +77,7 @@ def getIDF_2(wordsList, sub_sum):
 	count = rawdataDB.zl_project.select().count()
 	idf = {}
 	for word in data:
-		idf[word] = float(count) / (data[word][tools.tfidf_key.sum_frq])
+		idf[word] = float(count) / (data[word][tfidfDB.TFIDF_key.sum_frq])
 	return idf
 
 
@@ -53,14 +96,18 @@ def getTFIDF(tf, idf):
 
 
 def startTasker(task_ID, SQL):
+	tasker.taskerToStart(task_ID)
 	step = 100
-
 	zl_IDs = parse_IDs.getData(parse_IDs.generateValues(SQL))
 	error = zl_IDs["message"]
-	print(error)
 	zl_IDs = parse_IDs.getIDs(zl_IDs)
-	print("get IDs over")
-	print(zl_IDs)
+	if 0 == len(zl_IDs):
+		logger.error("get IDs fail")
+		tasker.taskerToError(task_ID, error)
+		sys.exit(-1)
+	logger.info("get IDs over")
+	tasker.taskerLog(task_ID, "get IDs over")
+	tasker.TaskerToProcess(task_ID)
 
 	wordsDict = {}
 	iterator = len(zl_IDs) / step
@@ -70,18 +117,17 @@ def startTasker(task_ID, SQL):
 
 	print len(zl_IDs)
 	for i in xrange(iterator):
-		print("." + str(i) + " " + str(iterator))
+		msg = "." + str(i) + " " + str(iterator)
+		tasker.taskerLog(task_ID, msg)
 		if (i + 1) * step >= len(zl_IDs):
 			data = rawdataDB.getFromIDs(zl_IDs[i * step:])
 		else:
 			data = rawdataDB.getFromIDs(
 				zl_IDs[i * step:(i + 1) * step - 1])
-		print("get Data over")
 		text = []
 		for d in data:
 			if d.alltext is not None and 0 != len(d.alltext):
 				text.append(d.alltext)
-		print("pre process over")
 		for t in text:
 			t = tasker.removeNULL(t)
 			words = tasker.getWordList(t)
@@ -89,46 +135,53 @@ def startTasker(task_ID, SQL):
 			if 0 == len(words):
 				continue
 			wordsDict = tools.addWordDict(words, wordsDict)
-		print("process over")
-	# print(wordsDict)
+	tasker.taskerLog(task_ID, "process step-1 over")
 	wordsList = wordsDict.keys()
 	idf = getIDF(wordsList)
 	idf_2 = getIDF(wordsList)
 	tf = getTF(wordsDict)
 	tfidf = getTFIDF(tf, idf)
 	tfidf_2 = getTFIDF(tf, idf_2)
-	sorted_tfidf = sorted(tfidf, key=lambda data: tfidf[data], reverse=True)
-	sorted_frq = sorted(
-		wordsDict, key=lambda data: wordsDict[data]["TFIDF_sum_frq"], reverse=True)
-	sorted_sum = sorted(
-		wordsDict, key=lambda data: wordsDict[data]["TFIDF_frq"], reverse=True)
-	sorted_tfidf_2 = sorted(tfidf_2, key=lambda data: tfidf_2[data], reverse=True)
+	# sorted_tfidf = sorted(tfidf, key=lambda data: tfidf[data], reverse=True)
+	# sorted_frq = sorted(
+	# 	wordsDict, key=lambda data: wordsDict[data]["TFIDF_sum_frq"], reverse=True)
+	# sorted_sum = sorted(
+	# 	wordsDict, key=lambda data: wordsDict[data]["TFIDF_frq"], reverse=True)
+	# sorted_tfidf_2 =
+	# 	sorted(tfidf_2, key=lambda data: tfidf_2[data], reverse=True)
+	tasker.taskerLog(task_ID, "process step-2 over")
+	tasker.taskerLog(task_ID, "save result to database")
 
-	with open("../result/tfidf.txt", "w") as f:
-		for i in sorted_tfidf:  # [:500]:
-			f.write(i)
-			f.write("		")
-			f.write(str(tfidf[i]))
-			f.write("\n")
-	with open("../result/frq.txt", "w") as f:
-		for i in sorted_frq:  # [:500]:
-			f.write(i)
-			f.write("		")
-			f.write(str(wordsDict[i]["TFIDF_sum_frq"]))
-			f.write("\n")
-	with open("../result/sum.txt", 'w') as f:
-		for i in sorted_sum:  # [:500]:
-			f.write(i)
-			f.write("		")
-			f.write(str(wordsDict[i]["TFIDF_frq"]))
-			f.write("\n")
-	with open("../result/tfidf_2.txt", "w") as f:
-		for i in sorted_tfidf_2:  # [:500]:
-			f.write(i)
-			f.write("		")
-			f.write(str(tfidf[i]))
-			f.write("\n")
-
+	saveToResult(task_ID, tfidf, taskResultDB.resultType.TFIDF)
+	saveToResult(task_ID, tfidf_2, taskResultDB.resultType.TFIDF_2)
+	saveTFIDFToResult(task_ID, wordsDict)
+	# with open("../result/tfidf.txt", "w") as f:
+	# 	for i in sorted_tfidf:  # [:500]:
+	# 		f.write(i)
+	# 		f.write("		")
+	# 		f.write(str(tfidf[i]))
+	# 		f.write("\n")
+	# with open("../result/frq.txt", "w") as f:
+	# 	for i in sorted_frq:  # [:500]:
+	# 		f.write(i)
+	# 		f.write("		")
+	# 		f.write(str(wordsDict[i]["TFIDF_sum_frq"]))
+	# 		f.write("\n")
+	# with open("../result/sum.txt", 'w') as f:
+	# 	for i in sorted_sum:  # [:500]:
+	# 		f.write(i)
+	# 		f.write("		")
+	# 		f.write(str(wordsDict[i]["TFIDF_frq"]))
+	# 		f.write("\n")
+	# with open("../result/tfidf_2.txt", "w") as f:
+	# 	for i in sorted_tfidf_2:  # [:500]:
+	# 		f.write(i)
+	# 		f.write("		")
+	# 		f.write(str(tfidf[i]))
+	# 		f.write("\n")
+	tasker.taskerLog(task_ID, "process step-3 over")
+	tasker.taskerLog(task_ID, "process complete")
+	tasker.taskerToComplete(task_ID)
 
 '''
 	queue = multiprocessing.Queue(MAX_QUEUE)

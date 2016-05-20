@@ -12,6 +12,8 @@ from tools import parse
 from tools.logger import logger
 from tools import config
 from DB import taskDB
+reload(sys)
+sys.setdefaultencoding("utf-8")
 # data 为处理好的数据 判断其中内容后直接执行相关请求
 
 

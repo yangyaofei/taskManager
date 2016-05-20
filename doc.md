@@ -18,7 +18,7 @@ cgi处理,json通讯,参数为task_name,task_type,task_para
 
 ### deleteTask
 
-只有处于精致状态的任务才能被删除
+只有处于精致状态的任务才能被删除,删除的除了task以外,还要判断result是否有并且一并删除
 cgi处理,json通讯,参数task_ID
 
 ### editTask
@@ -54,7 +54,7 @@ cgi处,json通讯,参数list_type,返回json,参数同字段名词
 ### restartTask
 
 只有处于"e"出错状态的任务才能被重启,重启后任务状态为"a",
-并将task_data清空
+并将task_data清空,且将taskResult清空
 cgi处理,json通讯,参数task_ID
 
 ### task状态定义
@@ -116,7 +116,20 @@ cgi处理,json通讯,参数task_ID
 	F:deleteTask
 	P:pauseTask
 	G:getResult
-	D:deleteResult
 	O:OK
 	E:error
 
+## taskResult 字段定义
+
+	task_ID		int 外键
+	word		varchar(50)
+	word_weight	int
+	weight_type	int
+
+### weight_type 定义
+	
+	1 : 总词频
+	2 : 词频,每篇出现加一
+	3 : TFIDF weight 定义
+	4 : TFIDF 修改
+	负数: 绝对值对应文章ID的某词的词频

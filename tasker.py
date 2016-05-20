@@ -1,5 +1,6 @@
 # coding:utf-8
 from DB import taskDB
+import signal
 from tools import parse
 from tools.logger import logger
 import multiprocessing
@@ -20,16 +21,25 @@ class Tasker(multiprocessing.Process):
 
 	def run(self):
 		try:
+			signal.signal(signal.SIGTERM, self.exit)
 			task = taskDB.getTaskInfo(self.task_ID)
 			self.task_para = task.task_para
 			if task.task_type == TASK_TYPE.tfidf:
-				# import tfidfTasker
-				# tfidfTasker.startTasker(self.task_ID, task.task_para)
-				testTasker(self.task_ID, self.task_para)
+				import tfidfTasker
+				tfidfTasker.startTasker(self.task_ID, task.task_para)
+				# testTasker(self.task_ID, self.task_para)
+		except SystemExit:
+			logger.info("tasker exit with sys.exit()")
+			exit(0)
 		except:
 			logger.error("tasker error exit:" + traceback.format_exc())
 			taskerToError(self.task_ID, traceback.format_exc())
 			sys.exit(-1)
+
+	def exit(self, arg1, arg2):
+		logger.info("tasker exit")
+		taskerToError(self.task_ID, "stopTasker")
+		sys.exit(0)
 
 
 def taskerLog(ID, log):
@@ -40,22 +50,36 @@ def taskerLog(ID, log):
 	taskDB.changeTaskInfo(data)
 
 
-def taskerToError(ID, message):
-	logger.error("taskerToError")
-	# 转到出错状态 并保存出错原因
+def changeTaskerStatus(ID, message, status):
 	data = taskDB.getTaskInfo(ID)
-	data.task_status = parse.TASK_STATUS.error
 	if data.task_data is None:
 		data.task_data = ""
-	data.task_data += message
+	data.task_data += message + "\n"
+	data.task_status = status
 	taskDB.changeTaskInfo(data)
+
+
+def taskerToError(ID, message):
+	logger.error("taskerToError")
+	changeTaskerStatus(ID, "taskerError\n" + message, parse.TASK_STATUS.error)
 
 
 def taskerToComplete(ID):
-	logger.info("taskerToComplete")
-	data = taskDB.getTaskInfo(ID)
-	data.task_status = parse.TASK_STATUS.complete
-	taskDB.changeTaskInfo(data)
+	msg = "taskerToComplete"
+	logger.info(msg)
+	changeTaskerStatus(ID, msg, parse.TASK_STATUS.complete)
+
+
+def taskerToStart(ID):
+	msg = "taskerToStart"
+	logger.info(msg)
+	changeTaskerStatus(ID, msg, parse.TASK_STATUS.startTask)
+
+
+def TaskerToProcess(ID):
+	msg = "taskerToProcess"
+	logger.info(msg)
+	changeTaskerStatus(ID, msg, parse.TASK_STATUS.process)
 
 
 def initCutter():

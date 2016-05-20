@@ -15,6 +15,7 @@ MAX_QUEUE = 1000
 
 def getData(values):
 	# logger.info("get data from :"+url)
+	# values = values.encode("utf-8")
 	data = urllib.urlencode(values)
 	req = urllib2.Request(url, data)
 	return json.loads(urllib2.urlopen(req).read())
@@ -41,5 +42,5 @@ def getIDs(reqdata):
 	if int(reqdata["status"]) == 0:
 		return reqdata["list"]
 	else:
-		print(reqdata["message"])
+		# print(reqdata["message"])
 		return []

@@ -8,6 +8,7 @@ from tools import sockets
 from tools import parse
 from tools import common
 from DB import taskDB
+from DB import taskResultDB
 cgitb.enable()
 # 此脚本处理所有的通过ID进行的请求
 # 	包括:
@@ -52,6 +53,7 @@ elif request == parse.REQUEST.getTask:
 		parse.TASK_KEY.task_finish_time: task.task_finish_time
 	}
 elif request == parse.REQUEST.restartTask:
+	taskResultDB.deleteResult(int(task_ID))
 	task = taskDB.getTaskInfo(int(task_ID))
 	if task.task_status != parse.TASK_STATUS.error:
 		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
@@ -61,17 +63,18 @@ elif request == parse.REQUEST.restartTask:
 		taskDB.changeTaskInfo(task)
 		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
 elif request == parse.REQUEST.deleteTask:
+	taskResultDB.deleteResult(int(task_ID))
 	task = taskDB.getTaskInfo(int(task_ID))
 	if task.task_status == parse.TASK_STATUS.addTask or \
-		task.task_status == parse.TASK_STATUS.error:
+		task.task_status == parse.TASK_STATUS.error or\
+		task.task_status == parse.TASK_STATUS.complete:
 		taskDB.dropTaskInfo(int(task_ID))
-		request[parse.MAIN_KEY.request] = parse.REQUEST.ok
+		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
 	else:
-		request[parse.MAIN_KEY.request] = parse.REQUEST.error
+		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
 elif request == parse.REQUEST.getResult:
 	pass  # TODO
-elif request == parse.REQUEST.deleteResult:
-	pass  # TODO
+
 
 print "Content-type:application/json\r\n\r"
 print(json.dumps(respons, cls=common.JsonEncoder))
