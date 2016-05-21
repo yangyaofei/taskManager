@@ -27,3 +27,7 @@ def getRaw():
 
 def getTaskResult():
 	return getDict("taskResult")
+
+
+def getTask():
+	return getDict("task")

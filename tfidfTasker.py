@@ -97,6 +97,8 @@ def getTFIDF(tf, idf):
 
 def startTasker(task_ID, SQL):
 	tasker.taskerToStart(task_ID)
+	tasker.initCutter()
+	tasker.taskerLog(task_ID, "init Cutter over")
 	step = 100
 	zl_IDs = parse_IDs.getData(parse_IDs.generateValues(SQL))
 	error = zl_IDs["message"]
@@ -115,9 +117,8 @@ def startTasker(task_ID, SQL):
 	if len(zl_IDs) % step != 0:
 		iterator += 1
 
-	print len(zl_IDs)
 	for i in xrange(iterator):
-		msg = "." + str(i) + " " + str(iterator)
+		msg = "进度: " + str(i + 1) + "/ 共" + str(iterator)
 		tasker.taskerLog(task_ID, msg)
 		if (i + 1) * step >= len(zl_IDs):
 			data = rawdataDB.getFromIDs(zl_IDs[i * step:])

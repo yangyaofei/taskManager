@@ -1,11 +1,25 @@
 # coding:utf-8
 from peewee import Model, MySQLDatabase
-from peewee import CharField, IntegerField
+from peewee import CharField, IntegerField, CompositeKey
 import db_config
 
 
 db_config = db_config.getTaskResult()
 db = MySQLDatabase(**db_config)
+
+
+class resultType:
+	FRQ_SUM = 1
+	FRQ_COUNT = 2
+	TFIDF = 3
+	TFIDF_2 = 4
+
+
+class resultKey:
+	task_ID = "task_ID"
+	word = "word"
+	word_weight = "word_weight"
+	weight_type = "weight_type"
 
 
 class TaskResult(Model):
@@ -17,6 +31,8 @@ class TaskResult(Model):
 	class Meta:
 		db_table = "taskResult"
 		database = db
+		primary_key = CompositeKey(
+			resultKey.task_ID, resultKey.word, resultKey.weight_type)
 
 
 # 根据两个参数获取result,如果第二个参数不给
@@ -57,17 +73,3 @@ def deleteResult(task_ID):
 		return query.execute()
 	except:
 		return None
-
-
-class resultType:
-	FRQ_SUM = 1
-	FRQ_COUNT = 2
-	TFIDF = 3
-	TFIDF_2 = 4
-
-
-class resultKey:
-	task_ID = "task_ID"
-	word = "word"
-	word_weight = "word_weight"
-	weight_type = "weight_type"

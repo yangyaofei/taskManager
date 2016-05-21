@@ -3,12 +3,17 @@
 
 import cgi
 import cgitb
+import os
+import sys
 import json
 from tools import sockets
 from tools import parse
 from tools import common
 from DB import taskDB
 from DB import taskResultDB
+from openpyxl import Workbook
+reload(sys)
+sys.setdefaultencoding("utf-8")
 cgitb.enable()
 # 此脚本处理所有的通过ID进行的请求
 # 	包括:
@@ -22,6 +27,12 @@ cgitb.enable()
 # 	参数:
 # 	task_ID
 # 	request
+
+
+def getResultName(task):
+	return str(task.task_ID) + "_"\
+		+ str(task.task_create_time.date()) + "_"\
+		+ str(task.task_name) + ".xlsx"
 
 
 form = cgi.FieldStorage()
@@ -65,6 +76,12 @@ elif request == parse.REQUEST.restartTask:
 elif request == parse.REQUEST.deleteTask:
 	taskResultDB.deleteResult(int(task_ID))
 	task = taskDB.getTaskInfo(int(task_ID))
+	from tools import config
+	result_path = config.getResultPath()
+	result_path = result_path[0]
+	result_name = getResultName(task)
+	if os.path.exists(result_path + result_name):
+		os.remove(result_path + result_name)
 	if task.task_status == parse.TASK_STATUS.addTask or \
 		task.task_status == parse.TASK_STATUS.error or\
 		task.task_status == parse.TASK_STATUS.complete:
@@ -73,7 +90,39 @@ elif request == parse.REQUEST.deleteTask:
 	else:
 		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
 elif request == parse.REQUEST.getResult:
-	pass  # TODO
+	task = taskDB.getTaskInfo(int(task_ID))
+	from tools import config
+	file_path, web_path = config.getResultPath()
+	file_name = getResultName(task)
+	result = taskResultDB.getResult(task_ID)
+	result = taskResultDB.tranDataToDict(result)
+
+	if task.task_status != parse.TASK_STATUS.complete:
+		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
+	elif 0 == len(result):
+		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
+	elif os.path.isfile(file_path + file_name):
+		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
+		respons[parse.MAIN_KEY.patamenter] = web_path + file_name
+	else:
+		words = result[result.keys()[0]].keys()
+		wb = Workbook()
+		ws_sum = wb.active
+		ws_sum.title = u"词频"
+		ws_frq = wb.create_sheet()
+		ws_frq.title = u"出现次数"
+		ws_tfidf = wb.create_sheet()
+		ws_tfidf.title = u"TFIDF"
+		ws_tfidf_2 = wb.create_sheet()
+		ws_tfidf_2.title = u"TFIDF_2"
+		for i in words:
+			ws_sum.append([i, result[taskResultDB.resultType.FRQ_SUM][i]])
+			ws_frq.append([i, result[taskResultDB.resultType.FRQ_COUNT][i]])
+			ws_tfidf.append([i, result[taskResultDB.resultType.TFIDF][i]])
+			ws_tfidf_2.append([i, result[taskResultDB.resultType.TFIDF_2][i]])
+		wb.save(file_path + file_name)
+		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
+		respons[parse.MAIN_KEY.patamenter] = web_path + file_name
 
 
 print "Content-type:application/json\r\n\r"

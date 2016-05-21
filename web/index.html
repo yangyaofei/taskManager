@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Task manager</title>
+<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.0.min.js"></script>
+<script type="text/javascript">
+	URL_ActionWithID = "cgi-bin/actionWithID"
+	URL_ListTask = "cgi-bin/listTask"
+	URL_AddTask = "cgi-bin/addTask"
+	URL_EditTask = "cgi-bin/editTask"
+
+	listTask()
+
+	//MODEL
+	//TOOLS
+	function sendJson(json,url){//now useless
+		var encoded = $.toJSON( request );
+		var jsonStr = encoded;
+		$.ajax({
+			url : url,
+			type : 'POST',
+			data : jsonStr,
+			contentType : 'application/json;charset=utf-8',
+			success : function(data, status, xhr) {
+		        },
+		        Error : function(xhr, error, exception) {
+		            // handle the error.
+		            alert(exception.toString());
+			}
+		})
+	}
+	//CONTROLLER
+	function parseRespons(data){
+		if(data.request == "o")
+			alert("seccess")
+		else
+			alert("fail")
+		listTask()
+	}
+	function submitAdd(){
+		task_type = $("#task_type").val()
+		task_name = $("#task_name").val()
+		task_para = $("#task_para").val()
+
+		data = {
+			"task_type":task_type,
+			"task_name":task_name,
+			"task_para":task_para,
+		}
+		console.log(data)
+		$.post(URL_AddTask,data,
+		function(data,status){
+			parseRespons(data)
+		})
+	}
+	function listTask(){
+		$.getJSON(URL_ListTask,function(json) {
+			showListTask(json)
+		});
+	}
+	function getRequestData(task_ID,request){
+		data = {
+			"task_ID":task_ID,
+			"request":request
+		}
+		return data
+	}
+	function actionWithID(task_ID,request){
+		data = getRequestData(task_ID,request)
+
+		$.post(URL_ActionWithID,data,
+			function(data,status){
+				parseRespons(data)
+		})
+	}
+	//统一使用上一方法的请求
+	function startTask(task_ID){
+		actionWithID(task_ID,"B")
+	}
+	function stopTask(task_ID){
+		actionWithID(task_ID,"S")
+	}
+	function restartTask(task_ID){
+		actionWithID(task_ID,"R")
+	}
+	function deleteTask(task_ID){
+		if(!window.confirm("确定删除???"))
+			return;
+		actionWithID(task_ID,"F")
+	}
+	//此函数先用此函数进行相关功能验证,后期用其他实现
+	function getResult(task_ID){
+		data = getRequestData(task_ID,"G")
+		$.post(URL_ActionWithID,data,function(data,status){
+			if(data.request == "e"){
+				alert("getResult faile!")
+				return;
+			}
+			frame = $("<iframe src='"+data.paramenter+"'></iframe>")
+			frame.hide()
+			$("#main").append(frame)
+
+		});
+	}
+	function getTask(task_ID){
+		data = getRequestData(task_ID,"C")
+		$.post(URL_ActionWithID,data,function(data,status){
+			showTask(data.task_name,data.task_type,data.task_para,data.task_ID,"C",data.task_data)
+		});
+	}
+	function editTask(task_ID){
+		data = getRequestData(task_ID,"C")
+		$.post(URL_ActionWithID,data,function(data,status){
+			showTask(data.task_name,data.task_type,data.task_para,data.task_ID,"C")
+		});
+	}
+
+	function saveTask(task_ID){
+		task_type = $("#task_type").val()
+		task_name = $("#task_name").val()
+		task_para = $("#task_para").val()
+
+		data = {
+			"task_ID":task_ID,
+			"task_type":task_type,
+			"task_name":task_name,
+			"task_para":task_para,
+		}
+		$.post(URL_EditTask,data,function(data,status){
+			parseRespons(data)
+		})
+	}
+
+
+
+
+
+	/************************************************
+	 *	VIEW
+	************************************************/
+	function showListTask(json,flag){//根据JSON打印列表
+
+		var table = $("<table border='1'></table>");
+		var title_tr = $("<tr></tr>");
+		var title_task_ID = $("<td >TaskID</td>");
+		var title_task_name =$("<td >TaskName</td>");
+		var title_task_para = $("<td>TaskPara</td>")
+		var title_task_status = $("<td >TaskState</td>");
+		var title_task_create_time = $("<td >CreateTime</td>")
+		var title_task_finish_time = $("<td >FinishTime</td>")
+
+
+		table.css("font-size","xx-small");
+		table.css("margin","auto");
+
+
+		title_tr.append(title_task_ID).append(title_task_name).append(title_task_para)
+				.append(title_task_status).append(title_task_create_time)
+				.append(title_task_finish_time)
+
+		table.append(title_tr);
+
+		$("#TaskList").empty();
+		$("#TaskList").append(table);
+
+		//var container_min_width;
+
+		//var client_No_counter = 0;
+		for (i = 0; i < json.length; i++){
+			var tr = $("<tr></tr>");
+			var task_ID = $("<td ><input onclick = getTask("+ json[i].task_ID +") readOnly='readonly'></input></td>");
+			var task_name = $("<td ><input readOnly='readonly'></input></td>");
+			var task_para = $("<td ><input readOnly='readonly'></input></td>");
+			var task_status = $("<td ><input readOnly='readonly'></input></td>");
+			var task_create_time = $("<td ><input readOnly='readonly'></input></td>");
+			var task_finish_time = $("<td ><input readOnly='readonly'></input></td>");
+
+
+			//var task_ = $("<td><button onclick='showOrder("+json[i].order_ID+")'>详细</button></td>");
+
+
+			task_ID.children().css("width","50px");
+			task_status.children().css("width","50px");
+			task_name.children().css("width","100px")
+
+			task_ID.find("input").val(json[i].task_ID);
+			task_name.find("input").val(json[i].task_name)
+			task_para.find("input").val(json[i].task_para)
+			task_status.find("input").val(json[i].task_status);
+			task_create_time.find("input").val(json[i].task_create_time)
+			task_finish_time.find("input").val(json[i].task_finish_time)
+
+			//task_date.find("input").val((date.year + 1900) + "-" + (date.month + 1) + "-"
+			//		+ (date.date) + " " + date.hours + ":" + date.minutes);
+			tr.append(task_ID).append(task_name).append(task_para).append(task_status)
+				.append(task_create_time).append(task_finish_time)
+			//add buttons
+			tr.append(buildButton(json[i]))
+			//tr.append(order_delete).append(order_edit).append(order_detail);
+
+			//$("#wrap").append(tr);
+			//div.width(div.find("tr").eq(0).width());
+			//div.css("float","left");
+			table.append(tr);
+			container_min_width = tr.width();
+		}
+	}
+	function buildButton(json_item){//根据task的状态添加相应的button，并输出
+		status 		= json_item.task_status;
+		//state 		= state[0]//自己挖的坑,含泪也要填完 注:这个地方的state是一个2个的char,第二个没有用到的时候是0x0所以不显示
+		//去掉此坑
+		buttons 	= $("<td></td>")
+		// 注意此处的变量使starTask,这是故意的,
+		// 因为写成startTask会在onclick的时候与上面的startTask()函数冲突,
+		// 导致js报错,下面几个同理也要修改
+		startTask_ 	= $("<button onclick='startTask("+json_item.task_ID+")'>startTask</button>")
+		stopTask_	= $("<button onclick='stopTask("+json_item.task_ID+")'>stopTask</button>")
+		deleteTask_	= $("<button onclick='deleteTask("+json_item.task_ID+")'>deleteTask</button>")
+		restartTask_	= $("<button onclick='restartTask("+json_item.task_ID+")'>restartTask</button>")
+		editTask_ 	= $("<button onclick='editTask("+json_item.task_ID+")'>editTask</button>")
+		//此方法要先请求一个页面，在页面上面编辑完信息之后再真正的向服务器发出真正的editTask请求
+		pauseTask_	= $("")//TODO 没有实现 以后再说
+		//下面两个的实现需要更多的信息
+		getResult_	= $("<button onclick='getResult("+json_item.task_ID+")'>getResult</button>")
+		//deleteResult应该在别的页面逻辑里面
+		deleteResult_ = $("<button onclick='deleteResult("+json_item.teditask_ID+")'>deleteResult</button>")
+
+		switch(status){
+			case 'a'://任务添加
+				buttons.append(startTask_).append(editTask_).append(deleteTask_)
+				break;
+			case "s"://任务开始执行
+				buttons.append(stopTask_)
+				break;
+			case "p"://任务执行 与上面的一样
+				buttons.append(stopTask_)
+				break;
+			case "c"://任务完成
+				buttons.append(getResult_).append(deleteTask_)//.append(editTask)
+				break;
+			case "e"://出错
+				buttons.append(restartTask_).append(editTask_).append(deleteTask_)
+				break;
+			case "u"://暂停（以后实现）
+			default:
+		}
+		return buttons;
+	}
+	function showTask(task_name, task_type, task_para, task_ID=-1, request="A", task_data=""){
+		$("#TaskList").load("task.html", function(response, status, xhr) {
+			if(request == "C"){
+				$("#task_type").val(task_type)
+				$("#task_name").val(task_name)
+				$("#task_para").val(task_para)
+				if("" != task_data){
+					$("#task_type").attr("readOnly",true)
+					$("#task_name").attr("readOnly",true)
+					$("#task_para").attr("readOnly",true)
+					$("#task_data").val(task_data)
+					$("#task_data_title").show()
+					$("#task_data").show()
+					$("#submitTask").hide()
+				}
+				else{
+
+					$("#submitTask").attr("onclick","saveTask("+task_ID+")")
+				}
+			}
+		});
+	}
+
+</script>
+</head>
+<body>
+	<div id="head">
+		<h1 style="font-size:xx-large; text-align:center;">专利数据处理系统</h1>
+	</div>
+	<div id="main">
+		<div id='wrap'>
+			</div>
+			<div id="container">
+				<div id="menu">
+					<button href="javascript:void(0)" id="addTask" onclick="showTask('',1,'')">添加</button>
+					<!-- <input  id="order_date" size="50"/> -->
+					<button href="javascript:void(0)" onclick="listTask()">查询</button>
+				</div>
+				<div id="TaskList"></div>
+	</div>
+</body>
+</html>

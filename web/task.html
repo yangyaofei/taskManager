@@ -1,0 +1,27 @@
+<div style="margin:auto;">
+<table  style="margin:auto;">
+	<tbody id = "task">
+	<tr>
+		<td>任务类型</td>
+		<td>
+			<select id="task_type">
+				<option value=1>TFIDF 关键词</option>
+			</select>
+		</td>
+	</tr>
+	<tr>
+		<td>任务名词</td>
+		<td><input id="task_name" size="50"></input></td>
+	<tr>
+		<td>参数</td>
+		<td><input id="task_para" size="50"></input></td>
+	</tr>
+	<tr >
+		<td id = "task_data_title" style="display:none">任务信息<td>
+		<textarea id = "task_data" style="overflow-x:hidden;overflow-y:auto;display: none;" cols="40" rows="20" readonly="true"></textarea>
+	</tr>
+	<tr><td><button id="submitTask" onclick="submitAdd()">提交此任务</button></td></tr>
+	</tbody>
+</table>
+
+</div>

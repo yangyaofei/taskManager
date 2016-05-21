@@ -10,6 +10,7 @@
 	startTask
 	stopTask
 	restartTask
+	getResult
 
 ### addTask
 
@@ -18,7 +19,7 @@ cgi处理,json通讯,参数为task_name,task_type,task_para
 
 ### deleteTask
 
-只有处于精致状态的任务才能被删除,删除的除了task以外,还要判断result是否有并且一并删除
+只有处于精致状态的任务才能被删除,删除的除了task以外,还要判断result是否有并且一并删除,还要删除result对应的excel文件
 cgi处理,json通讯,参数task_ID
 
 ### editTask
@@ -56,6 +57,14 @@ cgi处,json通讯,参数list_type,返回json,参数同字段名词
 只有处于"e"出错状态的任务才能被重启,重启后任务状态为"a",
 并将task_data清空,且将taskResult清空
 cgi处理,json通讯,参数task_ID
+
+### getResult
+
+只有处于"c"状态可以获取,先判断是否有相应的result文件,
+有则直接返回地址,没有则生成之后返回文件地址
+
+文件命名规则:
+	[task_ID]_[task_create_time]_[task_name].xlsx
 
 ### task状态定义
 

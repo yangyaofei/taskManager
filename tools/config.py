@@ -16,3 +16,8 @@ def get():
 		else:
 			config[s[0]] = s[1]
 	return config
+
+
+def getResultPath():
+	config = get()
+	return config["result_path"], config["result_path_web"]

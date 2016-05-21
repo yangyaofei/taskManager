@@ -3,13 +3,15 @@ from peewee import Model, MySQLDatabase
 from peewee import PrimaryKeyField, CharField, DateTimeField, IntegerField
 from peewee import DoesNotExist
 from datetime import datetime
-db_config = {
-	'host': 'localhost',
-	'port': 3306,
-	'user': 'root',
-	'password': 'qazwsxedc',
-	'database': 'cnlp'
-}
+import db_config
+db_config = db_config.getTask()
+# db_config = {
+# 	'host': 'localhost',
+# 	'port': 3306,
+# 	'user': 'root',
+# 	'password': 'qazwsxedc',
+# 	'database': 'cnlp'
+# }
 db = MySQLDatabase(**db_config)
 
 

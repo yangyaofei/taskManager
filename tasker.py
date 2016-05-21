@@ -2,12 +2,14 @@
 from DB import taskDB
 import signal
 from tools import parse
+from tools import common
 from tools.logger import logger
 import multiprocessing
 import jieba
 from jieba import posseg
 import traceback
 import sys
+import datetime
 
 
 class TASK_TYPE:
@@ -42,11 +44,16 @@ class Tasker(multiprocessing.Process):
 		sys.exit(0)
 
 
+def time():
+	return datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S.%f')
+
+
 def taskerLog(ID, log):
 	data = taskDB.getTaskInfo(ID)
 	if data.task_data is None:
 		data.task_data = ""
-	data.task_data += log + "\n"
+	time_str = time()
+	data.task_data += time_str + ":" + log + "\n"
 	taskDB.changeTaskInfo(data)
 
 
@@ -54,7 +61,8 @@ def changeTaskerStatus(ID, message, status):
 	data = taskDB.getTaskInfo(ID)
 	if data.task_data is None:
 		data.task_data = ""
-	data.task_data += message + "\n"
+	time_str = time()
+	data.task_data += time_str + ":" + message + "\n"
 	data.task_status = status
 	taskDB.changeTaskInfo(data)
 
@@ -67,6 +75,9 @@ def taskerToError(ID, message):
 def taskerToComplete(ID):
 	msg = "taskerToComplete"
 	logger.info(msg)
+	data = taskDB.getTaskInfo(ID)
+	data.task_finish_time = datetime.datetime.now()
+	taskDB.changeTaskInfo(data)
 	changeTaskerStatus(ID, msg, parse.TASK_STATUS.complete)
 
 
@@ -83,7 +94,10 @@ def TaskerToProcess(ID):
 
 
 def initCutter():
-	jieba.load_userdict("dict.txt")
+	import logging
+	jieba.setLogLevel(logging.INFO)
+	jieba.load_userdict(common.getProjectPath() + "dict.txt")
+	jieba.initialize()
 
 
 # 只需要名词
