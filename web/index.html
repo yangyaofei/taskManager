@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Task manager</title>
-<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.0.min.js"></script>
+<script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
 <script type="text/javascript">
 	URL_ActionWithID = "cgi-bin/actionWithID"
 	URL_ListTask = "cgi-bin/listTask"
@@ -46,7 +46,7 @@
 		data = {
 			"task_type":task_type,
 			"task_name":task_name,
-			"task_para":task_para,
+			"task_para":task_para
 		}
 		console.log(data)
 		$.post(URL_AddTask,data,
@@ -125,7 +125,7 @@
 			"task_ID":task_ID,
 			"task_type":task_type,
 			"task_name":task_name,
-			"task_para":task_para,
+			"task_para":task_para
 		}
 		$.post(URL_EditTask,data,function(data,status){
 			parseRespons(data)
@@ -247,7 +247,10 @@
 		}
 		return buttons;
 	}
-	function showTask(task_name, task_type, task_para, task_ID=-1, request="A", task_data=""){
+	function showTask(task_name, task_type, task_para, task_ID, request, task_data){
+		task_ID = task_ID || -1
+		request = request || "A"
+		task_data = task_data || ""
 		$("#TaskList").load("task.html", function(response, status, xhr) {
 			if(request == "C"){
 				$("#task_type").val(task_type)
