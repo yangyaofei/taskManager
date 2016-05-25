@@ -22,7 +22,6 @@ import sys
 import logging
 import signal
 import time
-import common
 
 
 def daemon_exec(config):
@@ -68,13 +67,13 @@ def write_pid_file(pid_file, pid):
     except IOError:
         r = os.read(fd, 32)
         if r:
-            logging.error('already started at pid %s' % common.to_str(r))
+            logging.error('already started at pid %s' % to_str(r))
         else:
             logging.error('already started')
         os.close(fd)
         return -1
     os.ftruncate(fd, 0)
-    os.write(fd, common.to_bytes(str(pid)))
+    os.write(fd, to_bytes(str(pid)))
     return 0
 
 
@@ -132,7 +131,7 @@ def daemon_stop(pid_file):
     try:
         with open(pid_file) as f:
             buf = f.read()
-            pid = common.to_str(buf)
+            pid = to_str(buf)
             if not buf:
                 logging.error('not running')
     except IOError as e:
@@ -202,3 +201,17 @@ def set_user(username):
         os.setgroups(groups)
     os.setgid(gid)
     os.setuid(uid)
+
+
+def to_bytes(s):
+    if bytes != str:
+        if type(s) == str:
+            return s.encode('utf-8')
+    return s
+
+
+def to_str(s):
+    if bytes != str:
+        if type(s) == bytes:
+            return s.decode('utf-8')
+    return s

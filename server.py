@@ -7,6 +7,7 @@ import traceback
 import multiprocessing
 import taskManager
 from tools import sockets
+from tools import common
 from tools import daemon
 from tools import parse
 from tools.logger import logger
@@ -129,8 +130,9 @@ for key, value in optlist:
 		opt_config["pid-file"] = value
 	elif(key == "--log-file"):
 		opt_config["log-file"] = value
-opt_config["pid-file"] = opt_config.get("pid-file", "/var/run/nlpServer.pid")
-opt_config["log-file"] = opt_config.get("log-file", "/var/log/nlpServer.log")
+path = common.getProjectPath() + "log/"
+opt_config["pid-file"] = opt_config.get("pid-file", path + "server.pid")
+opt_config["log-file"] = opt_config.get("log-file", path + "server.log")
 daemon.daemon_exec(opt_config)
 # END
 
