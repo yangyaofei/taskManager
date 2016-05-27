@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # coding:utf-8
 import thread
+import os
+import signal
 import sys
 import getopt
 import traceback
@@ -50,6 +52,7 @@ class SocketServer(multiprocessing.Process):
 			logger.error(traceback.format_exc())
 			traceback.print_exc()
 			socket.close()
+
 		finally:
 			socket.close()
 
@@ -100,6 +103,36 @@ class SocketServer(multiprocessing.Process):
 		return parse.responseOK()
 
 
+def killServer():
+	try:
+		with open(opt_config["pid-file"]) as f:
+			buf = f.read()
+			pid = daemon.to_str(buf)
+			pid = int(pid)
+			os.kill(pid, signal.SIGTREM)
+	except:
+		logger.error("kill server error")
+		logger.error(traceback.format_exc())
+
+
+def handle_exit(argv1, argv2):
+	logger.info("exit server")
+	print(server)
+	print(manager)
+	if server is not None:
+		if server.is_alive():
+			server.terminate()
+			server.join()
+		logger.info("exit socket server over")
+	if manager is not None:
+		if manager.is_alive():
+			manager.terminate()
+			manager.join()
+			logger.info("exit manager server over")
+	logger.info("exit myself.....")
+	sys.exit(0)
+
+
 def printHelp():
 	print("help")
 
@@ -134,6 +167,8 @@ path = common.getProjectPath() + "log/"
 opt_config["pid-file"] = opt_config.get("pid-file", path + "server.pid")
 opt_config["log-file"] = opt_config.get("log-file", path + "server.log")
 daemon.daemon_exec(opt_config)
+# 信号量捕捉
+signal.signal(signal.SIGTERM, handle_exit)
 # END
 
 # 读取配置文件
@@ -142,7 +177,7 @@ QUEUE_MAX = (config.get())["queue"]
 queue = multiprocessing.Queue(QUEUE_MAX)
 
 server = SocketServer(queue)
-server.daemon = True
+# server.daemon = True
 manager = taskManager.TaskerManager(queue)
 # manager.daemon = True
 server.start()

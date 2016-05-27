@@ -8,6 +8,7 @@ from tools.logger import logger
 from tfidf import tools
 import tasker
 import sys
+import gc
 from tools import parse_IDs
 
 
@@ -71,7 +72,7 @@ def getTF(wordsDict):
 	return tf
 
 
-def getIDF_2(wordsList, sub_sum):
+def getIDF_2(wordsList):
 	data = tfidfDB.getFromWords(wordsList)
 	data = tfidfDB.tranDataToDict(data)
 	count = rawdataDB.zl_project.select().count()
@@ -79,6 +80,17 @@ def getIDF_2(wordsList, sub_sum):
 	for word in data:
 		idf[word] = float(count) / (data[word][tfidfDB.TFIDF_key.sum_frq])
 	return idf
+
+
+def getTFIDF_2(tf, idf_2):
+	count = rawdataDB.zl_project.select().count()
+	tfidf = {}
+	for i in tf:
+		if i not in idf_2:
+			tfidf[i] = float(count)
+		else:
+			tfidf[i] = tf[i] * idf_2[i]
+	return tfidf
 
 
 def getTFIDF(tf, idf):
@@ -136,13 +148,36 @@ def startTasker(task_ID, SQL):
 			if 0 == len(words):
 				continue
 			wordsDict = tools.addWordDict(words, wordsDict)
+		gc.collect()
 	tasker.taskerLog(task_ID, "process step-1 over")
+	tasker.taskerLog(task_ID, "save result to database")
+
 	wordsList = wordsDict.keys()
-	idf = getIDF(wordsList)
-	idf_2 = getIDF(wordsList)
 	tf = getTF(wordsDict)
+
+	idf = getIDF(wordsList)
 	tfidf = getTFIDF(tf, idf)
-	tfidf_2 = getTFIDF(tf, idf_2)
+	saveToResult(task_ID, tfidf, taskResultDB.resultType.TFIDF)
+	tasker.taskerLog(task_ID, "save tfidf over")
+	idf = None
+	tfidf = None
+	gc.collect()
+
+	idf_2 = getIDF_2(wordsList)
+	tfidf_2 = getTFIDF_2(tf, idf_2)
+	saveToResult(task_ID, tfidf_2, taskResultDB.resultType.TFIDF_2)
+	tasker.taskerLog(task_ID, "save tfidf_2 over")
+	idf_2 = None
+	tfidf_2 = None
+	gc.collect()
+
+	saveTFIDFToResult(task_ID, wordsDict)
+	tasker.taskerLog(task_ID, "save frq over")
+	tasker.taskerLog(task_ID, "process step-3 over")
+	tasker.taskerLog(task_ID, "process complete")
+	tasker.taskerToComplete(task_ID)
+	gc.collect()
+
 	# sorted_tfidf = sorted(tfidf, key=lambda data: tfidf[data], reverse=True)
 	# sorted_frq = sorted(
 	# 	wordsDict, key=lambda data: wordsDict[data]["TFIDF_sum_frq"], reverse=True)
@@ -150,41 +185,8 @@ def startTasker(task_ID, SQL):
 	# 	wordsDict, key=lambda data: wordsDict[data]["TFIDF_frq"], reverse=True)
 	# sorted_tfidf_2 =
 	# 	sorted(tfidf_2, key=lambda data: tfidf_2[data], reverse=True)
-	tasker.taskerLog(task_ID, "process step-2 over")
-	tasker.taskerLog(task_ID, "save result to database")
 
-	saveToResult(task_ID, tfidf, taskResultDB.resultType.TFIDF)
-	saveToResult(task_ID, tfidf_2, taskResultDB.resultType.TFIDF_2)
-	saveTFIDFToResult(task_ID, wordsDict)
-	# with open("../result/tfidf.txt", "w") as f:
-	# 	for i in sorted_tfidf:  # [:500]:
-	# 		f.write(i)
-	# 		f.write("		")
-	# 		f.write(str(tfidf[i]))
-	# 		f.write("\n")
-	# with open("../result/frq.txt", "w") as f:
-	# 	for i in sorted_frq:  # [:500]:
-	# 		f.write(i)
-	# 		f.write("		")
-	# 		f.write(str(wordsDict[i]["TFIDF_sum_frq"]))
-	# 		f.write("\n")
-	# with open("../result/sum.txt", 'w') as f:
-	# 	for i in sorted_sum:  # [:500]:
-	# 		f.write(i)
-	# 		f.write("		")
-	# 		f.write(str(wordsDict[i]["TFIDF_frq"]))
-	# 		f.write("\n")
-	# with open("../result/tfidf_2.txt", "w") as f:
-	# 	for i in sorted_tfidf_2:  # [:500]:
-	# 		f.write(i)
-	# 		f.write("		")
-	# 		f.write(str(tfidf[i]))
-	# 		f.write("\n")
-	tasker.taskerLog(task_ID, "process step-3 over")
-	tasker.taskerLog(task_ID, "process complete")
-	tasker.taskerToComplete(task_ID)
-
-'''
+	'''
 	queue = multiprocessing.Queue(MAX_QUEUE)
 	p = Producer(queue,zl_IDs,1000)
 	logger.info(taskID_for_log+"start a process to get data")
@@ -193,7 +195,8 @@ def startTasker(task_ID, SQL):
 	# Get data use queue and Process it
 	while True:
 		logger.info(taskID_for_log+"in while to get data from queue")
-		dirt = queue.get()
+
+dirt = queue.get()
 		if dirt["flag"] == "e":
 			logger.info(taskID_for_log+"get a 'e'flag to end loop")
 			break

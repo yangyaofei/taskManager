@@ -28,7 +28,7 @@ else:
 
 
 def getLogger(level, log_file):
-	logger = logging.getLogger('')
+	logger = logging.getLogger('cgi')
 	if(len(LOG_TO) == 0):
 		handler = logging.StreamHandler()
 	else:

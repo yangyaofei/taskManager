@@ -4,9 +4,12 @@ import threading
 import traceback
 import tasker
 import time
+import sys
+import signal
 # import taskDB
 from tools import parse
 from tools.logger import logger
+from DB import taskDB
 
 # TaskManager进程有两个线程
 # 主线程:
@@ -24,6 +27,10 @@ class TaskerManager(multiprocessing.Process):
 
 	def run(self):
 		logger.info("TaskManager start")
+		# 处理SIGTERM 信号量
+		signal.signal(signal.SIGTERM, self.exit)
+		# 先处理上次的错误数据之后,再进入
+		self.handleLast()
 		# 启动一个线程去获取数据
 		t = threading.Thread(target=self.request)  # , args=(self,))
 		t.start()
@@ -34,6 +41,22 @@ class TaskerManager(multiprocessing.Process):
 			time.sleep(1)
 		# lock.acquire()
 		# lock.release()
+
+	def exit(self, argv1, argv2):
+		# 杀死所有子进程之后退出
+		self.lock.acquire()
+		for t in self.taskerList:
+			self.taskerList[t].terminate()
+		self.lock.release()
+		sys.exit(0)
+
+	def handleLast(self):
+		tasks = taskDB.getAllTaskInfo()
+		for t in tasks:
+			if t.task_status == parse.TASK_STATUS.process or\
+				t.task_status == parse.TASK_STATUS.startTask:
+				t.task_status = parse.TASK_STATUS.error
+				t.save()
 
 	def request(self):
 		try:
@@ -59,10 +82,15 @@ class TaskerManager(multiprocessing.Process):
 		self.lock.acquire()
 		for t in self.taskerList.keys():
 			if not self.taskerList[t].is_alive():
+				# 看任务是否完成,没有完成则标记为error
+				task = taskDB.getTaskInfo(t)
+				if task.task_status == parse.TASK_STATUS.process or\
+					task.task_status == parse.TASK_STATUS.startTask:
+					task.task_status = parse.TASK_STATUS.error
+					task.save()
 				self.taskerList[t].join()
 				del self.taskerList[t]
 		self.lock.release()
-		# TODO 找到所有子进程,终止所有没有在列表中的子进程
 
 	def startTask(self, task_ID):
 		self.lock.acquire()
@@ -71,7 +99,7 @@ class TaskerManager(multiprocessing.Process):
 			self.lock.release()
 			return
 		task = tasker.Tasker(task_ID)
-		task.daemon = True
+		# task.daemon = True
 		task.start()
 		if task is not None:
 			self.taskerList[task_ID] = task

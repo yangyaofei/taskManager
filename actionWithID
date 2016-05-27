@@ -12,6 +12,8 @@ from tools import common
 from DB import taskDB
 from DB import taskResultDB
 from openpyxl import Workbook
+# from memory_profiler import profile
+
 reload(sys)
 sys.setdefaultencoding("utf-8")
 cgitb.enable()
@@ -33,6 +35,17 @@ def getResultName(task):
 	return str(task.task_ID) + "_"\
 		+ str(task.task_create_time.date()) + "_"\
 		+ str(task.task_name) + ".xlsx"
+
+
+def saveToSheet(sheet, task_ID, resultType):
+	result = taskResultDB.getResult(task_ID, resultType)
+	result = taskResultDB.tranDataToList(result)
+	result = result[resultType]
+	for i in result:
+		sheet.append(i)
+	result = []
+	gc.collect()
+	return sheet
 
 
 form = cgi.FieldStorage()
@@ -94,20 +107,20 @@ elif request == parse.REQUEST.getResult:
 	from tools import config
 	file_path, web_path = config.getResultPath()
 	file_name = getResultName(task)
-	result = taskResultDB.getResult(task_ID)
-	result = taskResultDB.tranDataToDict(result)
-
+	import gc
+	from tools import logger
+	log = logger.getLogger(logger.logging.INFO, file_path + "cgi.log")
 	if task.task_status != parse.TASK_STATUS.complete:
-		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
-	elif 0 == len(result):
 		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
 	elif os.path.isfile(file_path + file_name):
 		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
 		respons[parse.MAIN_KEY.patamenter] = web_path + file_name
 	else:
-		words = result[result.keys()[0]].keys()
-		wb = Workbook()
-		ws_sum = wb.active
+		log.info("start")
+		# result = taskResultDB.getResult(task_ID)
+		wb = Workbook(write_only=True)
+		# ws_sum = wb.active
+		ws_sum = wb.create_sheet()
 		ws_sum.title = u"词频"
 		ws_frq = wb.create_sheet()
 		ws_frq.title = u"出现次数"
@@ -115,12 +128,17 @@ elif request == parse.REQUEST.getResult:
 		ws_tfidf.title = u"TFIDF"
 		ws_tfidf_2 = wb.create_sheet()
 		ws_tfidf_2.title = u"TFIDF_2"
-		for i in words:
-			ws_sum.append([i, result[taskResultDB.resultType.FRQ_SUM][i]])
-			ws_frq.append([i, result[taskResultDB.resultType.FRQ_COUNT][i]])
-			ws_tfidf.append([i, result[taskResultDB.resultType.TFIDF][i]])
-			ws_tfidf_2.append([i, result[taskResultDB.resultType.TFIDF_2][i]])
+		log.info("write to sheel")
+		ws_sum = saveToSheet(ws_sum, task_ID, taskResultDB.resultType.FRQ_SUM)
+		ws_frq = saveToSheet(ws_frq, task_ID, taskResultDB.resultType.FRQ_COUNT)
+		ws_tfidf = saveToSheet(ws_tfidf, task_ID, taskResultDB.resultType.TFIDF)
+		ws_tfidf_2 = saveToSheet(
+			ws_tfidf_2, task_ID, taskResultDB.resultType.TFIDF_2)
+		log.info("save to sheet over")
+		# iterator = 0  # 用于循环计数,达到1000进行一次cg
+		# log.info("write to sheet")
 		wb.save(file_path + file_name)
+		log.info("save file")
 		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
 		respons[parse.MAIN_KEY.patamenter] = web_path + file_name
 

@@ -59,6 +59,19 @@ def tranDataToDict(datas):
 	return result_dict
 
 
+# 方法同上,但是生成的二级结构是list,
+# 其中[0]是word[1]是weight,然后[0] , [1] 又分别使是一个List
+# 这样做是为了减小内存占用
+# 结构仍然是weight_type的dict
+def tranDataToList(datas):
+	result_dict = {}
+	for i in datas:
+		if i.weight_type not in result_dict:
+			result_dict[i.weight_type] = []
+		result_dict[i.weight_type].append([i.word, i.word_weight])
+	return result_dict
+
+
 # 列表,内容是字典
 def addResult(results):
 	if 0 == len(results):

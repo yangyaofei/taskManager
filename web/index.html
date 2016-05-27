@@ -11,7 +11,7 @@
 	URL_EditTask = "cgi-bin/editTask"
 
 	listTask()
-
+	updateTaskdata()
 	//MODEL
 	//TOOLS
 	function sendJson(json,url){//now useless
@@ -107,6 +107,7 @@
 		data = getRequestData(task_ID,"C")
 		$.post(URL_ActionWithID,data,function(data,status){
 			showTask(data.task_name,data.task_type,data.task_para,data.task_ID,"C",data.task_data)
+			update_task_ID = task_ID
 		});
 	}
 	function editTask(task_ID){
@@ -132,8 +133,21 @@
 		})
 	}
 
-
-
+	update_task_ID = 0
+	function updateTaskdata(){
+		var int = setInterval(function(){
+			if(document.getElementById("task_data")){
+				data = getRequestData(update_task_ID,"C")
+				$.post(URL_ActionWithID,data,function(data,status){
+					if(data.request != "e"){
+						$("#task_data").val(data.task_data)
+					}
+				})
+			}else{
+				listTask()
+			}
+		},3000)
+	}
 
 
 	/************************************************
@@ -169,12 +183,12 @@
 		//var client_No_counter = 0;
 		for (i = 0; i < json.length; i++){
 			var tr = $("<tr></tr>");
-			var task_ID = $("<td ><input onclick = getTask("+ json[i].task_ID +") readOnly='readonly'></input></td>");
-			var task_name = $("<td ><input readOnly='readonly'></input></td>");
-			var task_para = $("<td ><input readOnly='readonly'></input></td>");
-			var task_status = $("<td ><input readOnly='readonly'></input></td>");
-			var task_create_time = $("<td ><input readOnly='readonly'></input></td>");
-			var task_finish_time = $("<td ><input readOnly='readonly'></input></td>");
+			var task_ID = $("<td onclick = getTask("+ json[i].task_ID +") ></td>");
+			var task_name = $("<td ></td>");
+			var task_para = $("<td ></td>");
+			var task_status = $("<td ></td>");
+			var task_create_time = $("<td ></td>");
+			var task_finish_time = $("<td ></td>");
 
 
 			//var task_ = $("<td><button onclick='showOrder("+json[i].order_ID+")'>详细</button></td>");
@@ -184,12 +198,12 @@
 			task_status.children().css("width","50px");
 			task_name.children().css("width","100px")
 
-			task_ID.find("input").val(json[i].task_ID);
-			task_name.find("input").val(json[i].task_name)
-			task_para.find("input").val(json[i].task_para)
-			task_status.find("input").val(json[i].task_status);
-			task_create_time.find("input").val(json[i].task_create_time)
-			task_finish_time.find("input").val(json[i].task_finish_time)
+			task_ID.text(json[i].task_ID);
+			task_name.text(json[i].task_name)
+			task_para.text(json[i].task_para)
+			task_status.text(json[i].task_status);
+			task_create_time.text(json[i].task_create_time)
+			task_finish_time.text(json[i].task_finish_time)
 
 			//task_date.find("input").val((date.year + 1900) + "-" + (date.month + 1) + "-"
 			//		+ (date.date) + " " + date.hours + ":" + date.minutes);
