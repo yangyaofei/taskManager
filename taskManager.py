@@ -88,6 +88,7 @@ class TaskerManager(multiprocessing.Process):
 					task.task_status == parse.TASK_STATUS.startTask:
 					task.task_status = parse.TASK_STATUS.error
 					task.save()
+					logger.info("get a stoped task turn to error")
 				self.taskerList[t].join()
 				del self.taskerList[t]
 		self.lock.release()

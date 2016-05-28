@@ -39,6 +39,11 @@ def saveTFIDFToResult(task_ID, wordsDict):
 			taskResultDB.resultKey.word_weight:
 				wordsDict[i][tfidfDB.TFIDF_key.frq]
 		}
+		frqList.append(item_frq)
+	taskResultDB.addResult(frqList)
+	frqList = []
+	gc.collect()
+	for i in wordsDict:
 		item_frq_sum = {
 			taskResultDB.resultKey.task_ID: task_ID,
 			taskResultDB.resultKey.weight_type: taskResultDB.resultType.FRQ_SUM,
@@ -46,9 +51,7 @@ def saveTFIDFToResult(task_ID, wordsDict):
 			taskResultDB.resultKey.word_weight:
 				wordsDict[i][tfidfDB.TFIDF_key.sum_frq]
 		}
-		frqList.append(item_frq)
-		frqList.append(item_frq_sum)
-	taskResultDB.addResult(frqList)
+		frqsumList.append(item_frq_sum)
 	taskResultDB.addResult(frqsumList)
 
 
@@ -173,7 +176,7 @@ def startTasker(task_ID, SQL):
 
 	saveTFIDFToResult(task_ID, wordsDict)
 	tasker.taskerLog(task_ID, "save frq over")
-	tasker.taskerLog(task_ID, "process step-3 over")
+	tasker.taskerLog(task_ID, "process step-2 over")
 	tasker.taskerLog(task_ID, "process complete")
 	tasker.taskerToComplete(task_ID)
 	gc.collect()

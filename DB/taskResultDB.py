@@ -77,7 +77,8 @@ def addResult(results):
 	if 0 == len(results):
 		return
 	with db.atomic():
-		TaskResult.insert_many(results).execute()
+		for i in xrange(0, len(results), 3000):
+			TaskResult.insert_many(results[i:i + 3000]).execute()
 
 
 def deleteResult(task_ID):
