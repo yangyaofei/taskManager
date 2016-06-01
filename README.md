@@ -54,4 +54,9 @@
 
 python文件请遵守pep8规范,但是请使用TAB替代space
 
+## log文件权限配置
+
+如果cig脚本出现permission denied 
+将log文件夹下的的log文件加入a+w权限即可
+
 ## 具体工程相关借口定义见`doc.md`文件
