@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <title>Task manager</title>
 <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+<style type="text/css">
+#shelter{
+	position	: absolute;
+	height		: 100%;
+	width		: 100%;
+	top			: 0px;
+	left		: 0px;
+	background-color: rgba(0,0,0,0.5);
+	display		: none;
+}
+</style>
 <script type="text/javascript">
 	URL_ActionWithID = "cgi-bin/actionWithID"
 	URL_ListTask = "cgi-bin/listTask"
@@ -92,14 +103,18 @@
 	//此函数先用此函数进行相关功能验证,后期用其他实现
 	function getResult(task_ID){
 		data = getRequestData(task_ID,"G")
+		//block 页面
+		$("#shelter").css("display","block")
 		$.post(URL_ActionWithID,data,function(data,status){
 			if(data.request == "e"){
 				alert("getResult faile!")
+				$("#shelter").css("display","none")
 				return;
 			}
 			frame = $("<iframe src='"+data.paramenter+"'></iframe>")
 			frame.hide()
 			$("#main").append(frame)
+			$("#shelter").css("display","none")
 
 		});
 	}
@@ -137,6 +152,8 @@
 	function updateTaskdata(){
 		var int = setInterval(function(){
 			if(document.getElementById("task_data")){
+				if(update_task_ID <= 0)
+					return
 				data = getRequestData(update_task_ID,"C")
 				$.post(URL_ActionWithID,data,function(data,status){
 					if(data.request != "e"){
@@ -265,6 +282,8 @@
 		task_ID = task_ID || -1
 		request = request || "A"
 		task_data = task_data || ""
+		// 更新update_task_ID 以停止更新
+		update_task_ID = task_ID
 		$("#TaskList").load("task.html", function(response, status, xhr) {
 			if(request == "C"){
 				$("#task_type").val(task_type)
@@ -304,5 +323,6 @@
 				</div>
 				<div id="TaskList" style="width:80%;text-align:center;padding-left:10%"></div>
 	</div>
+	<div id="shelter" sytle="position: absolute;height: 100%;width: 100%;top: 0px;left: 0px;background-color: rgba(0,0,0,0.5);"></div>
 </body>
 </html>
