@@ -55,7 +55,7 @@
 		})
 	}
 	function listTask(){
-		$.getJSON(URL_ListTask,function(json) {
+		$.post(URL_ListTask,"",function(json) {
 			showListTask(json)
 		});
 	}
@@ -302,7 +302,7 @@
 					<!-- <input  id="order_date" size="50"/> -->
 					<button href="javascript:void(0)" onclick="listTask()">查询</button>
 				</div>
-				<div id="TaskList"></div>
+				<div id="TaskList" style="width:80%;text-align:center;padding-left:10%"></div>
 	</div>
 </body>
 </html>
