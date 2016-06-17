@@ -152,7 +152,7 @@ def startTasker(task_ID, SQL):
 		for d in data:
 			if d.alltext is not None and 0 != len(d.alltext):
 				text.append(d.alltext)
-			if d.abstractcontenti is not None and 0 != len(d.abstractcontent):
+			if d.abstractcontent is not None and 0 != len(d.abstractcontent):
 				text_abstract.append(d.abstractcontent)
 			if d.name is not None and 0 != len(d.name):
 				text_title.append(d.name)
@@ -198,7 +198,6 @@ def startTasker(task_ID, SQL):
 	wordsDict_claim = None
 	wordsDict_title = None
 	wordsDict_abstract = None
-
 	# +++++++++++++++
 	wordsList = wordsDict.keys()
 	tf = getTF(wordsDict)
@@ -229,19 +228,19 @@ def startTasker(task_ID, SQL):
 			taskResultDB.resultKey.weight_type: taskResultDB.resultType.ABSTRACT,
 			taskResultDB.resultKey.word: i,
 			taskResultDB.resultKey.word_weight:
-				wordsDict[i][tfidfDB.TFIDF_key.frq]
+				wordsDict_[i][tfidfDB.TFIDF_key.frq]
 		}
 		frqList.append(item_frq)
 	taskResultDB.addResult(frqList)
 	frqList = []
 	gc.collect()
-	for i in wordsDict:
+	for i in wordsDict_:
 		item_frq_sum = {
 			taskResultDB.resultKey.task_ID: task_ID,
 			taskResultDB.resultKey.weight_type: taskResultDB.resultType.CLAIM,
 			taskResultDB.resultKey.word: i,
 			taskResultDB.resultKey.word_weight:
-				wordsDict[i][tfidfDB.TFIDF_key.sum_frq]
+				wordsDict_[i][tfidfDB.TFIDF_key.sum_frq]
 		}
 		frqsumList.append(item_frq_sum)
 	taskResultDB.addResult(frqsumList)

@@ -25,25 +25,26 @@ def getWordList(words):
 def mergeWordDict(d1, d2):
 	s1 = set(d1.keys())
 	s2 = set(d2.keys())
-
 	s3 = s2 - s1
-	s4 = s2 + s1
+	s4 = s2 | s1
 	d3 = {}
 	d4 = {}
-	for i in set(s3):
+	for i in s3:
 		d3[i] = d2[i]
-	for i in set(s4):
-		if i in s1 and i in s2:
+	for i in s4:
+		d4[i] = {}
+		d4[i][tfidf_key.word] = i
+		if i in d1 and i in d2:
 			d4[i][tfidf_key.frq] = d1[i][tfidf_key.frq] + d2[i][tfidf_key.frq]
 			d4[i][tfidf_key.sum_frq] = d1[i][tfidf_key.sum_frq] \
 				+ d2[i][tfidf_key.sum_frq]
-		if i in s1 and i not in s2:
+		elif i in d1:
 			d4[i][tfidf_key.frq] = d1[i][tfidf_key.frq]
 			d4[i][tfidf_key.sum_frq] = d1[i][tfidf_key.sum_frq]
-		if i not in s1 and i in s2:
+		elif i in d2:
 			d4[i][tfidf_key.frq] = d2[i][tfidf_key.frq]
 			d4[i][tfidf_key.sum_frq] = d2[i][tfidf_key.sum_frq]
-	return d1, d3
+	return d4, d3
 
 
 # 列表 如果第二个参数值,则加入到字典中,并返回
