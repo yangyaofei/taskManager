@@ -13,6 +13,9 @@ class resultType:
 	FRQ_COUNT = 2
 	TFIDF = 3
 	TFIDF_2 = 4
+	TITLE = 5
+	ABSTRACT = 6
+	CLAIM = 7
 
 
 class resultKey:

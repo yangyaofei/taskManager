@@ -128,12 +128,24 @@ elif request == parse.REQUEST.getResult:
 		ws_tfidf.title = u"TFIDF"
 		ws_tfidf_2 = wb.create_sheet()
 		ws_tfidf_2.title = u"TFIDF_2"
+		# ++++++++++++++++++++++++++
+		ws_frq_other = wb.create_sheet()
+		ws_frq_other.title = u"other_frq"
+		ws_sum_other = wb.create_sheet()
+		ws_sum_other.title = u"other_sum"
+		# ++++++++++++++++++++++++++
 		log.info("write to sheel")
 		ws_sum = saveToSheet(ws_sum, task_ID, taskResultDB.resultType.FRQ_SUM)
 		ws_frq = saveToSheet(ws_frq, task_ID, taskResultDB.resultType.FRQ_COUNT)
 		ws_tfidf = saveToSheet(ws_tfidf, task_ID, taskResultDB.resultType.TFIDF)
 		ws_tfidf_2 = saveToSheet(
 			ws_tfidf_2, task_ID, taskResultDB.resultType.TFIDF_2)
+		# ++++++++++++++++++++++++++++++++++++++++++++++++++++
+		ws_sum_other = saveToSheet(
+			ws_sum_other, task_ID, taskResultDB.resultType.ABSTRACT)
+		ws_frq_other = saveToSheet(
+			ws_frq_other, task_ID, taskResultDB.resultType.CLAIM)
+		# ++++++++++++++++++++++++++++++++++++++++++++++++++++
 		log.info("save to sheet over")
 		# iterator = 0  # 用于循环计数,达到1000进行一次cg
 		# log.info("write to sheet")

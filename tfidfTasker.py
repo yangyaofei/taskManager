@@ -127,6 +127,10 @@ def startTasker(task_ID, SQL):
 	tasker.TaskerToProcess(task_ID)
 
 	wordsDict = {}
+	wordsDict_title = {}  # 标题
+	wordsDict_abstract = {}  # 摘要
+	wordsDict_claim = {}  # 权利要求
+
 	iterator = len(zl_IDs) / step
 
 	if len(zl_IDs) % step != 0:
@@ -141,9 +145,19 @@ def startTasker(task_ID, SQL):
 			data = rawdataDB.getFromIDs(
 				zl_IDs[i * step:(i + 1) * step - 1])
 		text = []
+		text_title = []  # 标题
+		text_abstract = []  # 摘要
+		text_claim = []  # 权利要求
+
 		for d in data:
 			if d.alltext is not None and 0 != len(d.alltext):
 				text.append(d.alltext)
+			if d.abstractcontenti is not None and 0 != len(d.abstractcontent):
+				text_abstract.append(d.abstractcontent)
+			if d.name is not None and 0 != len(d.name):
+				text_title.append(d.name)
+			if d.right_require is not None and 0 != len(d.right_require):
+				text_claim.append(d.right_require)
 		for t in text:
 			t = tasker.removeNULL(t)
 			words = tasker.getWordList(t)
@@ -151,13 +165,43 @@ def startTasker(task_ID, SQL):
 			if 0 == len(words):
 				continue
 			wordsDict = tools.addWordDict(words, wordsDict)
+		for t in text_title:
+			t = tasker.removeNULL(t)
+			words = tasker.getWordList(t)
+			words = tasker.oneWordFilter(words)
+			if 0 == len(words):
+				continue
+			wordsDict_title = tools.addWordDict(words, wordsDict_title)
+		for t in text_claim:
+			t = tasker.removeNULL(t)
+			words = tasker.getWordList(t)
+			words = tasker.oneWordFilter(words)
+			if 0 == len(words):
+				continue
+			wordsDict_claim = tools.addWordDict(words, wordsDict_claim)
+		for t in text_abstract:
+			t = tasker.removeNULL(t)
+			words = tasker.getWordList(t)
+			words = tasker.oneWordFilter(words)
+			if 0 == len(words):
+				continue
+			wordsDict_abstract = tools.addWordDict(words, wordsDict_abstract)
 		gc.collect()
 	tasker.taskerLog(task_ID, "process step-1 over")
 	tasker.taskerLog(task_ID, "save result to database")
+	# ++++++++++++++++
+	wordsDict_ = {}
+	wordsDict_ = tools.mergeWordDict(wordsDict_, wordsDict_claim)[0]
+	wordsDict_ = tools.mergeWordDict(wordsDict_, wordsDict_title)[0]
+	wordsDict_ = tools.mergeWordDict(wordsDict_, wordsDict_abstract)[0]
 
+	wordsDict_claim = None
+	wordsDict_title = None
+	wordsDict_abstract = None
+
+	# +++++++++++++++
 	wordsList = wordsDict.keys()
 	tf = getTF(wordsDict)
-
 	idf = getIDF(wordsList)
 	tfidf = getTFIDF(tf, idf)
 	saveToResult(task_ID, tfidf, taskResultDB.resultType.TFIDF)
@@ -176,6 +220,35 @@ def startTasker(task_ID, SQL):
 
 	saveTFIDFToResult(task_ID, wordsDict)
 	tasker.taskerLog(task_ID, "save frq over")
+	# ++++++++++++++++++++++++++++++++++++++++++++++++++
+	frqList = []
+	frqsumList = []
+	for i in wordsDict_:
+		item_frq = {
+			taskResultDB.resultKey.task_ID: task_ID,
+			taskResultDB.resultKey.weight_type: taskResultDB.resultType.ABSTRACT,
+			taskResultDB.resultKey.word: i,
+			taskResultDB.resultKey.word_weight:
+				wordsDict[i][tfidfDB.TFIDF_key.frq]
+		}
+		frqList.append(item_frq)
+	taskResultDB.addResult(frqList)
+	frqList = []
+	gc.collect()
+	for i in wordsDict:
+		item_frq_sum = {
+			taskResultDB.resultKey.task_ID: task_ID,
+			taskResultDB.resultKey.weight_type: taskResultDB.resultType.CLAIM,
+			taskResultDB.resultKey.word: i,
+			taskResultDB.resultKey.word_weight:
+				wordsDict[i][tfidfDB.TFIDF_key.sum_frq]
+		}
+		frqsumList.append(item_frq_sum)
+	taskResultDB.addResult(frqsumList)
+
+	tasker.taskerLog(task_ID, "save frq_other over")
+	# ++++++++++++++++++++++++++++++++++++++++++++++++++
+
 	tasker.taskerLog(task_ID, "process step-2 over")
 	tasker.taskerLog(task_ID, "process complete")
 	tasker.taskerToComplete(task_ID)

@@ -20,21 +20,29 @@ def getWordList(words):
 	return l
 
 
-# 将d1,d2数据合并,设定d1是d2的子集
-# 返回值为两个,第一个是两个的交集部分并将词频相加,第二个是两个的补集部分
+# 将d1,d2数据合并
+# 返回值为两个,第一个是两个的并集部分并将词频相加,第二个是补集 d2-d1 部分
 def mergeWordDict(d1, d2):
 	s1 = set(d1.keys())
 	s2 = set(d2.keys())
-	if len(s1 - s2) != 0:
-		# 理论上d1应该为d2子集,所以如果补集有数据则说明出错了!
-		return
+
 	s3 = s2 - s1
+	s4 = s2 + s1
 	d3 = {}
+	d4 = {}
 	for i in set(s3):
 		d3[i] = d2[i]
-	for i in d1:
-		d1[i][tfidf_key.frq] += d2[i][tfidf_key.frq]
-		d1[i][tfidf_key.sum_frq] += d2[i][tfidf_key.sum_frq]
+	for i in set(s4):
+		if i in s1 and i in s2:
+			d4[i][tfidf_key.frq] = d1[i][tfidf_key.frq] + d2[i][tfidf_key.frq]
+			d4[i][tfidf_key.sum_frq] = d1[i][tfidf_key.sum_frq] \
+				+ d2[i][tfidf_key.sum_frq]
+		if i in s1 and i not in s2:
+			d4[i][tfidf_key.frq] = d1[i][tfidf_key.frq]
+			d4[i][tfidf_key.sum_frq] = d1[i][tfidf_key.sum_frq]
+		if i not in s1 and i in s2:
+			d4[i][tfidf_key.frq] = d2[i][tfidf_key.frq]
+			d4[i][tfidf_key.sum_frq] = d2[i][tfidf_key.sum_frq]
 	return d1, d3
 
 
