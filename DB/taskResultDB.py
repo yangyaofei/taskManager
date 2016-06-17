@@ -43,9 +43,9 @@ def getResult(task_ID, weight_type=None):
 		return TaskResult.select().where(TaskResult.task_ID == task_ID)
 	if weight_type == 0:
 		return TaskResult.select().where(
-			TaskResult.task_ID == task_ID and TaskResult.weight_type < 0)
+			TaskResult.task_ID == task_ID, TaskResult.weight_type < 0)
 	return TaskResult.select().where(
-		TaskResult.task_ID == task_ID and TaskResult.weight_type == weight_type)
+		TaskResult.task_ID == task_ID, TaskResult.weight_type == weight_type)
 
 
 # 将可迭代的TaskResult输出成dict
