@@ -12,10 +12,10 @@ name = form.getvalue(parse.TASK_KEY.task_name)
 type = form.getvalue(parse.TASK_KEY.task_type)
 para = form.getvalue(parse.TASK_KEY.task_para)
 id = taskDB.addTaskInfo(name, type, para)
-respons = {}
+response = {}
 if id is not None:
-	respons = {parse.MAIN_KEY.request: parse.REQUEST.ok}
+	response = {parse.MAIN_KEY.request: parse.REQUEST.ok}
 else:
-	respons = {parse.MAIN_KEY.request: parse.REQUEST.error}
+	response = {parse.MAIN_KEY.request: parse.REQUEST.error}
 print "Content-type:application/json\r\n\r"
-print(json.dumps(respons))
+print(json.dumps(response))

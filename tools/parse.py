@@ -8,7 +8,7 @@ VERSION = 3
 class MAIN_KEY:
 	version = "version"
 	request = "request"
-	patamenter = "paramenter"
+	parameter = "parameter"
 
 
 class TASK_KEY:
@@ -58,7 +58,7 @@ def parseToJson(request, para_data=""):
 	data[MAIN_KEY.version] = VERSION
 	data[MAIN_KEY.request] = request
 	if 0 != len(para_data):
-		data[MAIN_KEY.patamenter] = para_data
+		data[MAIN_KEY.parameter] = para_data
 	return json.dumps(data, cls=common.JsonEncoder)
 
 
@@ -76,9 +76,9 @@ def parseToBinStopTask(task_ID):
 
 
 def paresID(data):
-	if MAIN_KEY.patamenter not in data:
+	if MAIN_KEY.parameter not in data:
 		return None
-	return data[MAIN_KEY.patamenter][TASK_KEY.task_ID]
+	return data[MAIN_KEY.parameter][TASK_KEY.task_ID]
 
 
 def responseOK():

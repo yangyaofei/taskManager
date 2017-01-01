@@ -51,22 +51,22 @@ def saveToSheet(sheet, task_ID, resultType):
 form = cgi.FieldStorage()
 task_ID = int(form.getvalue(parse.TASK_KEY.task_ID))
 request = form.getvalue(parse.MAIN_KEY.request)
-respons = {}
+response = {}
 if request == parse.REQUEST.startTask:
 	data = parse.parseToBinStartTask(task_ID)
 	socket = sockets.connectServer()
 	socket.send(data)
 	data = sockets.recv(socket)
-	respons = json.loads(data)
+	response = json.loads(data)
 elif request == parse.REQUEST.stopTask:
 	data = parse.parseToBinStopTask(task_ID)
 	socket = sockets.connectServer()
 	socket.send(data)
 	data = sockets.recv(socket)
-	respons = json.loads(data)
+	response = json.loads(data)
 elif request == parse.REQUEST.getTask:
 	task = taskDB.getTaskInfo(int(task_ID))
-	respons = {
+	response = {
 		parse.TASK_KEY.task_ID: task.task_ID,
 		parse.TASK_KEY.task_data: task.task_data,
 		parse.TASK_KEY.task_status: task.task_status,
@@ -80,12 +80,12 @@ elif request == parse.REQUEST.restartTask:
 	taskResultDB.deleteResult(int(task_ID))
 	task = taskDB.getTaskInfo(int(task_ID))
 	if task.task_status != parse.TASK_STATUS.error:
-		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
+		response[parse.MAIN_KEY.request] = parse.REQUEST.error
 	else:
 		task.task_status = parse.TASK_STATUS.addTask
 		task.task_data = ""
 		taskDB.changeTaskInfo(task)
-		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
+		response[parse.MAIN_KEY.request] = parse.REQUEST.ok
 elif request == parse.REQUEST.deleteTask:
 	taskResultDB.deleteResult(int(task_ID))
 	task = taskDB.getTaskInfo(int(task_ID))
@@ -99,9 +99,9 @@ elif request == parse.REQUEST.deleteTask:
 		task.task_status == parse.TASK_STATUS.error or\
 		task.task_status == parse.TASK_STATUS.complete:
 		taskDB.dropTaskInfo(int(task_ID))
-		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
+		response[parse.MAIN_KEY.request] = parse.REQUEST.ok
 	else:
-		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
+		response[parse.MAIN_KEY.request] = parse.REQUEST.error
 elif request == parse.REQUEST.getResult:
 	task = taskDB.getTaskInfo(int(task_ID))
 	from tools import config
@@ -111,10 +111,10 @@ elif request == parse.REQUEST.getResult:
 	from tools import logger
 	log = logger.getLogger(logger.logging.INFO, file_path + "cgi.log")
 	if task.task_status != parse.TASK_STATUS.complete:
-		respons[parse.MAIN_KEY.request] = parse.REQUEST.error
+		response[parse.MAIN_KEY.request] = parse.REQUEST.error
 	elif os.path.isfile(file_path + file_name):
-		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
-		respons[parse.MAIN_KEY.patamenter] = web_path + file_name
+		response[parse.MAIN_KEY.request] = parse.REQUEST.ok
+		response[parse.MAIN_KEY.patamenter] = web_path + file_name
 	else:
 		log.info("start")
 		# result = taskResultDB.getResult(task_ID)
@@ -151,9 +151,9 @@ elif request == parse.REQUEST.getResult:
 		# log.info("write to sheet")
 		wb.save(file_path + file_name)
 		log.info("save file")
-		respons[parse.MAIN_KEY.request] = parse.REQUEST.ok
-		respons[parse.MAIN_KEY.patamenter] = web_path + file_name
+		response[parse.MAIN_KEY.request] = parse.REQUEST.ok
+		response[parse.MAIN_KEY.patamenter] = web_path + file_name
 
 
 print "Content-type:application/json\r\n\r"
-print(json.dumps(respons, cls=common.JsonEncoder))
+print(json.dumps(response, cls=common.JsonEncoder))

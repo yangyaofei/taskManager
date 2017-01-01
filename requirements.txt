@@ -1,4 +1,4 @@
 peewee
 requests
-openpyx
-jlieba
+openpyxl
+jieba

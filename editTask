@@ -18,7 +18,7 @@ task.task_name = task_name
 task.task_type = task_type
 task.task_para = task_para
 taskDB.changeTaskInfo(task)
-respons = {parse.MAIN_KEY.request: parse.REQUEST.ok}
+response = {parse.MAIN_KEY.request: parse.REQUEST.ok}
 
 print "Content-type:application/json\r\n\r"
-print(json.dumps(respons))
+print(json.dumps(response))
