@@ -1,6 +1,7 @@
 # coding:utf-8
 import logging
 import common
+import os
 
 project_path = common.getProjectPath()
 LOG_LEVEL = logging.INFO
@@ -11,9 +12,12 @@ format_str = "[%(levelname)s][%(asctime)s][%(process)d:%(processName)s]\
 format_str_d = "[%(levelname)s][%(asctime)s][%(process)d:%(processName)s]\
 [%(filename)s->%(lineno)d:%(funcName)s]%(message)s"
 logger = logging.getLogger('')
-if(len(LOG_TO) == 0):
+if 0 == len(LOG_TO):
 	handler = logging.StreamHandler()
 else:
+	p = os.path.split(LOG_TO)[0]
+	if not os.path.exists(p):
+		os.makedirs(p)
 	handler = logging.FileHandler(LOG_TO)
 logger.addHandler(handler)
 logger.setLevel(LOG_LEVEL)
@@ -29,7 +33,7 @@ else:
 
 def getLogger(level, log_file):
 	logger = logging.getLogger('cgi')
-	if(len(LOG_TO) == 0):
+	if 0 == len(LOG_TO):
 		handler = logging.StreamHandler()
 	else:
 		handler = logging.FileHandler(log_file)
