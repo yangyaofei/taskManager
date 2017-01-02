@@ -32,6 +32,6 @@ def recv(sock):
 	while(True):
 		buf = sock.recv(BUFF_SIZE)
 		szBuf += buf
-		if(len(buf) < BUFF_SIZE):
+		if len(buf) < BUFF_SIZE:
 			break
 	return szBuf

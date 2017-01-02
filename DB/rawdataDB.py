@@ -1,6 +1,7 @@
 #  coding:utf-8
 from peewee import Model, MySQLDatabase, PrimaryKeyField, CharField, TextField
 from peewee import IntegerField
+from db_base import MySQLDatabaseRetry
 import db_config
 
 
@@ -76,8 +77,6 @@ class zl_project_data:
 		self.content6 = zl_project.content6
 		self.alltext = zl_project.alltext
 
-db_config = db_config.getRaw()
-db = MySQLDatabase(**db_config)
 
 
 class zl_project(Model):
@@ -154,7 +153,8 @@ class zl_project(Model):
 
 	class Meta:
 		db_table = 'zl_project'
-		database = db
+		config = db_config.getRaw()
+		database = MySQLDatabaseRetry(**config)
 
 
 def getFromID(ID):

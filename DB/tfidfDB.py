@@ -2,11 +2,12 @@
 from peewee import Model, MySQLDatabase
 from peewee import PrimaryKeyField, CharField, IntegerField
 from playhouse import shortcuts
+from db_base import MySQLDatabaseRetry
 import db_config
 
 
 db_config = db_config.getTFIDF()
-db = MySQLDatabase(**db_config)
+db = MySQLDatabaseRetry(**db_config)
 
 
 class TFIDF_word(Model):

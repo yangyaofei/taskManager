@@ -3,6 +3,7 @@ from peewee import Model, MySQLDatabase
 from peewee import PrimaryKeyField, CharField, DateTimeField, IntegerField
 from peewee import DoesNotExist
 from datetime import datetime
+from db_base import MySQLDatabaseRetry
 import db_config
 db_config = db_config.getTask()
 # db_config = {
@@ -12,7 +13,6 @@ db_config = db_config.getTask()
 # 	'password': 'qazwsxedc',
 # 	'database': 'cnlp'
 # }
-db = MySQLDatabase(**db_config)
 
 
 class TaskInfo(Model):
@@ -27,7 +27,7 @@ class TaskInfo(Model):
 
 	class Meta:
 		db_table = 'taskInfo'
-		database = db
+		database = MySQLDatabaseRetry(**db_config)
 
 
 def getAllTaskInfo():

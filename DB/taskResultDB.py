@@ -1,11 +1,12 @@
 # coding:utf-8
 from peewee import Model, MySQLDatabase
 from peewee import CharField, IntegerField, CompositeKey
+from db_base import MySQLDatabaseRetry
 import db_config
 
 
 db_config = db_config.getTaskResult()
-db = MySQLDatabase(**db_config)
+db = MySQLDatabaseRetry(**db_config)
 
 
 class resultType:
