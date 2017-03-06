@@ -114,7 +114,7 @@ elif request == parse.REQUEST.getResult:
 		response[parse.MAIN_KEY.request] = parse.REQUEST.error
 	elif os.path.isfile(file_path + file_name):
 		response[parse.MAIN_KEY.request] = parse.REQUEST.ok
-		response[parse.MAIN_KEY.patamenter] = web_path + file_name
+		response[parse.MAIN_KEY.parameter] = web_path + file_name
 	else:
 		log.info("start")
 		# result = taskResultDB.getResult(task_ID)
@@ -152,7 +152,7 @@ elif request == parse.REQUEST.getResult:
 		wb.save(file_path + file_name)
 		log.info("save file")
 		response[parse.MAIN_KEY.request] = parse.REQUEST.ok
-		response[parse.MAIN_KEY.patamenter] = web_path + file_name
+		response[parse.MAIN_KEY.parameter] = web_path + file_name
 
 
 print "Content-type:application/json\r\n\r"
