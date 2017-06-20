@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # coding:utf-8
 import sys
-import tfidfDB
+from DB import tfidfDB
 import multiprocessing
 # import rawdataDB
 import jieba
@@ -13,7 +13,7 @@ import time
 import signal
 import getopt
 import pickle
-import logger
+from tools import logger
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -349,7 +349,7 @@ class Producer(multiprocessing.Process):
 		texts.append(ID)
 		IDs = range(ID, ID + size - 1)
 		# sys.stdout.flush()
-		import rawdataDB
+		import rawdataDB # TODO rewrite 已经失效
 		datas = rawdataDB.getFromIDs(IDs)
 		for i in datas:
 			# 数据库中有可能这个字段使空的,返回的值

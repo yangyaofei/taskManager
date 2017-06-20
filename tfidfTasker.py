@@ -13,51 +13,52 @@ from tools import parse_IDs
 
 
 # words是一个字典,值为权重
-def saveToResult(task_ID, words, resultType):
-	saveList = []
+def save_to_result(task_id, words, result_type):
+	save_list = []
 	for i in words:
 		item = {
-			taskResultDB.resultKey.task_ID: task_ID,
-			taskResultDB.resultKey.weight_type: resultType,
+			taskResultDB.resultKey.task_ID: task_id,
+			taskResultDB.resultKey.weight_type: result_type,
 			taskResultDB.resultKey.word: i,
 			taskResultDB.resultKey.word_weight: words[i]
 		}
-		saveList.append(item)
-	taskResultDB.addResult(saveList)
+		save_list.append(item)
+	taskResultDB.addResult(save_list)
 
 
 # tfidf格式字典保存,两个都保存
 # 注意使tfidf格式的字典的保存,不是tfidf算法的数据的保存
-def saveTFIDFToResult(task_ID, wordsDict):
-	frqList = []
-	frqsumList = []
-	for i in wordsDict:
+def save_tfidf_to_result(task_id, words_dict):
+	frq_list = []
+	frq_sum_list = []
+	for i in words_dict:
 		item_frq = {
-			taskResultDB.resultKey.task_ID: task_ID,
+			taskResultDB.resultKey.task_ID: task_id,
 			taskResultDB.resultKey.weight_type: taskResultDB.resultType.FRQ_COUNT,
 			taskResultDB.resultKey.word: i,
 			taskResultDB.resultKey.word_weight:
-				wordsDict[i][tfidfDB.TFIDF_key.frq]
+				words_dict[i][tfidfDB.TFIDF_key.frq]
 		}
-		frqList.append(item_frq)
-	taskResultDB.addResult(frqList)
-	frqList = []
+		frq_list.append(item_frq)
+	taskResultDB.addResult(frq_list)
+	# 用于GC
+	frq_list = []
 	gc.collect()
-	for i in wordsDict:
+	for i in words_dict:
 		item_frq_sum = {
-			taskResultDB.resultKey.task_ID: task_ID,
+			taskResultDB.resultKey.task_ID: task_id,
 			taskResultDB.resultKey.weight_type: taskResultDB.resultType.FRQ_SUM,
 			taskResultDB.resultKey.word: i,
 			taskResultDB.resultKey.word_weight:
-				wordsDict[i][tfidfDB.TFIDF_key.sum_frq]
+				words_dict[i][tfidfDB.TFIDF_key.sum_frq]
 		}
-		frqsumList.append(item_frq_sum)
-	taskResultDB.addResult(frqsumList)
+		frq_sum_list.append(item_frq_sum)
+	taskResultDB.addResult(frq_sum_list)
 
 
 # 参数:词语列表
-def getIDF(wordsList):
-	data = tfidfDB.getFromWords(wordsList)
+def get_idf(words_list):
+	data = tfidfDB.getFromWords(words_list)
 	data = tfidfDB.tranDataToDict(data)
 	count = rawdataDB.zl_project.select().count()
 	idf = {}
@@ -68,15 +69,15 @@ def getIDF(wordsList):
 
 # 参数:包括词频的字典
 # 此处不使用,直接用词频
-def getTF(wordsDict):
+def get_tf(words_dict):
 	tf = {}
-	for word in wordsDict:
-		tf[word] = wordsDict[word][tfidfDB.TFIDF_key.sum_frq]
+	for word in words_dict:
+		tf[word] = words_dict[word][tfidfDB.TFIDF_key.sum_frq]
 	return tf
 
 
-def getIDF_2(wordsList):
-	data = tfidfDB.getFromWords(wordsList)
+def get_idf_2(words_list):
+	data = tfidfDB.getFromWords(words_list)
 	data = tfidfDB.tranDataToDict(data)
 	count = rawdataDB.zl_project.select().count()
 	idf = {}
@@ -85,7 +86,7 @@ def getIDF_2(wordsList):
 	return idf
 
 
-def getTFIDF_2(tf, idf_2):
+def get_tfidf_2(tf, idf_2):
 	count = rawdataDB.zl_project.select().count()
 	tfidf = {}
 	for i in tf:
@@ -96,7 +97,7 @@ def getTFIDF_2(tf, idf_2):
 	return tfidf
 
 
-def getTFIDF(tf, idf):
+def get_tfidf(tf, idf):
 	count = rawdataDB.zl_project.select().count()
 	tfidf = {}
 	for i in tf:
@@ -115,135 +116,136 @@ def startTasker(task_ID, SQL):
 	tasker.initCutter()
 	tasker.taskerLog(task_ID, "init Cutter over")
 	step = 100
-	zl_IDs = parse_IDs.getData(parse_IDs.generateValues(SQL))
-	error = zl_IDs["message"]
-	zl_IDs = parse_IDs.getIDs(zl_IDs)
-	if 0 == len(zl_IDs):
-		logger.error("get IDs fail")
-		tasker.taskerToError(task_ID, error)
-		sys.exit(-1)
-	logger.info("get IDs over")
-	tasker.taskerLog(task_ID, "get IDs over")
-	tasker.TaskerToProcess(task_ID)
+	length = 0
+	iterator = 0
+	progress = 1
+	for item in parse_IDs.get_raw(SQL,size=step):
+		if len(item[0]):
+			logger.error("get IDs fail")
+			tasker.taskerToError(task_ID, item[1])
+			sys.exit(-1)
 
-	wordsDict = {}
-	wordsDict_title = {}  # 标题
-	wordsDict_abstract = {}  # 摘要
-	wordsDict_claim = {}  # 权利要求
+		logger.info("get IDs over")
+		tasker.taskerLog(task_ID, "get IDs over")
+		tasker.TaskerToProcess(task_ID)
 
-	iterator = len(zl_IDs) / step
+		words_dict = {}
+		words_dict_title = {}  # 标题
+		words_dict_abstract = {}  # 摘要
+		words_dict_claim = {}  # 权利要求
 
-	if len(zl_IDs) % step != 0:
-		iterator += 1
-
-	for i in xrange(iterator):
-		msg = "进度: " + str(i + 1) + "/ 共" + str(iterator)
+		# calculate step
+		# 用于生成进度
+		length = item[1]
+		iterator = length / step
+		if length % step != 0:
+			iterator += 1
+		# 进度显示
+		msg = "进度: " + str(progress) + "/ 共" + str(iterator)
 		tasker.taskerLog(task_ID, msg)
-		if (i + 1) * step >= len(zl_IDs):
-			data = rawdataDB.getFromIDs(zl_IDs[i * step:])
-		else:
-			data = rawdataDB.getFromIDs(
-				zl_IDs[i * step:(i + 1) * step - 1])
+
 		text = []
 		text_title = []  # 标题
 		text_abstract = []  # 摘要
 		text_claim = []  # 权利要求
 
-		for d in data:
-			if d.alltext is not None and 0 != len(d.alltext):
-				text.append(d.alltext)
-			if d.abstractcontent is not None and 0 != len(d.abstractcontent):
-				text_abstract.append(d.abstractcontent)
-			if d.name is not None and 0 != len(d.name):
-				text_title.append(d.name)
-			if d.right_require is not None and 0 != len(d.right_require):
-				text_claim.append(d.right_require)
+		for d in item[0]:
+			if d["alltext"] is not None and 0 != len(d.alltext):
+				text.append(d["alltext"])
+			if d["abstractcontent"] is not None and 0 != len(d.abstractcontent):
+				text_abstract.append(d["abstractcontent"])
+			if d["name"] is not None and 0 != len(d.name):
+				text_title.append(d["name"])
+			if d["right_require"] is not None and 0 != len(d.right_require):
+				text_claim.append(d["right_require"])
 		for t in text:
 			t = tasker.removeNULL(t)
 			words = tasker.getWordList(t)
 			words = tasker.oneWordFilter(words)
 			if 0 == len(words):
 				continue
-			wordsDict = tools.addWordDict(words, wordsDict)
+			words_dict = tools.addWordDict(words, words_dict)
 		for t in text_title:
 			t = tasker.removeNULL(t)
 			words = tasker.getWordList(t)
 			words = tasker.oneWordFilter(words)
 			if 0 == len(words):
 				continue
-			wordsDict_title = tools.addWordDict(words, wordsDict_title)
+			words_dict_title = tools.addWordDict(words, words_dict_title)
 		for t in text_claim:
 			t = tasker.removeNULL(t)
 			words = tasker.getWordList(t)
 			words = tasker.oneWordFilter(words)
 			if 0 == len(words):
 				continue
-			wordsDict_claim = tools.addWordDict(words, wordsDict_claim)
+			words_dict_claim = tools.addWordDict(words, words_dict_claim)
 		for t in text_abstract:
 			t = tasker.removeNULL(t)
 			words = tasker.getWordList(t)
 			words = tasker.oneWordFilter(words)
 			if 0 == len(words):
 				continue
-			wordsDict_abstract = tools.addWordDict(words, wordsDict_abstract)
+			words_dict_abstract = tools.addWordDict(words, words_dict_abstract)
 		gc.collect()
 	tasker.taskerLog(task_ID, "process step-1 over")
 	tasker.taskerLog(task_ID, "save result to database")
 	# ++++++++++++++++
-	wordsDict_ = {}
-	wordsDict_ = tools.mergeWordDict(wordsDict_, wordsDict_claim)[0]
-	wordsDict_ = tools.mergeWordDict(wordsDict_, wordsDict_title)[0]
-	wordsDict_ = tools.mergeWordDict(wordsDict_, wordsDict_abstract)[0]
+	words_dict_ = {}
+	words_dict_ = tools.mergeWordDict(words_dict_, words_dict_claim)[0]
+	words_dict_ = tools.mergeWordDict(words_dict_, words_dict_title)[0]
+	words_dict_ = tools.mergeWordDict(words_dict_, words_dict_abstract)[0]
 
-	wordsDict_claim = None
-	wordsDict_title = None
-	wordsDict_abstract = None
-	# +++++++++++++++
-	wordsList = wordsDict.keys()
-	tf = getTF(wordsDict)
-	idf = getIDF(wordsList)
-	tfidf = getTFIDF(tf, idf)
-	saveToResult(task_ID, tfidf, taskResultDB.resultType.TFIDF)
+	words_list = words_dict.keys()
+	tf = get_tf(words_dict)
+	idf = get_idf(words_list)
+	tfidf = get_tfidf(tf, idf)
+	save_to_result(task_ID, tfidf, taskResultDB.resultType.TFIDF)
 	tasker.taskerLog(task_ID, "save tfidf over")
+
+	# GC
+	words_dict_claim = None
+	words_dict_title = None
+	words_dict_abstract = None
 	idf = None
 	tfidf = None
 	gc.collect()
 
-	idf_2 = getIDF_2(wordsList)
-	tfidf_2 = getTFIDF_2(tf, idf_2)
-	saveToResult(task_ID, tfidf_2, taskResultDB.resultType.TFIDF_2)
+	idf_2 = get_idf_2(words_list)
+	tfidf_2 = get_tfidf_2(tf, idf_2)
+	save_to_result(task_ID, tfidf_2, taskResultDB.resultType.TFIDF_2)
 	tasker.taskerLog(task_ID, "save tfidf_2 over")
+
 	idf_2 = None
 	tfidf_2 = None
 	gc.collect()
 
-	saveTFIDFToResult(task_ID, wordsDict)
+	save_tfidf_to_result(task_ID, words_dict)
 	tasker.taskerLog(task_ID, "save frq over")
 	# ++++++++++++++++++++++++++++++++++++++++++++++++++
-	frqList = []
-	frqsumList = []
-	for i in wordsDict_:
+	frq_list = []
+	frq_sum_list = []
+	for i in words_dict_:
 		item_frq = {
 			taskResultDB.resultKey.task_ID: task_ID,
 			taskResultDB.resultKey.weight_type: taskResultDB.resultType.ABSTRACT,
 			taskResultDB.resultKey.word: i,
 			taskResultDB.resultKey.word_weight:
-				wordsDict_[i][tfidfDB.TFIDF_key.frq]
+				words_dict_[i][tfidfDB.TFIDF_key.frq]
 		}
-		frqList.append(item_frq)
-	taskResultDB.addResult(frqList)
-	frqList = []
+		frq_list.append(item_frq)
+	taskResultDB.addResult(frq_list)
+	frq_list = []
 	gc.collect()
-	for i in wordsDict_:
+	for i in words_dict_:
 		item_frq_sum = {
 			taskResultDB.resultKey.task_ID: task_ID,
 			taskResultDB.resultKey.weight_type: taskResultDB.resultType.CLAIM,
 			taskResultDB.resultKey.word: i,
 			taskResultDB.resultKey.word_weight:
-				wordsDict_[i][tfidfDB.TFIDF_key.sum_frq]
+				words_dict_[i][tfidfDB.TFIDF_key.sum_frq]
 		}
-		frqsumList.append(item_frq_sum)
-	taskResultDB.addResult(frqsumList)
+		frq_sum_list.append(item_frq_sum)
+	taskResultDB.addResult(frq_sum_list)
 
 	tasker.taskerLog(task_ID, "save frq_other over")
 	# ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -255,9 +257,9 @@ def startTasker(task_ID, SQL):
 
 	# sorted_tfidf = sorted(tfidf, key=lambda data: tfidf[data], reverse=True)
 	# sorted_frq = sorted(
-	# 	wordsDict, key=lambda data: wordsDict[data]["TFIDF_sum_frq"], reverse=True)
+	# 	words_dict, key=lambda data: words_dict[data]["TFIDF_sum_frq"], reverse=True)
 	# sorted_sum = sorted(
-	# 	wordsDict, key=lambda data: wordsDict[data]["TFIDF_frq"], reverse=True)
+	# 	words_dict, key=lambda data: words_dict[data]["TFIDF_frq"], reverse=True)
 	# sorted_tfidf_2 =
 	# 	sorted(tfidf_2, key=lambda data: tfidf_2[data], reverse=True)
 

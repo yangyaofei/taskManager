@@ -119,6 +119,6 @@ class TaskerManager(multiprocessing.Process):
 		del self.taskerList[task_ID]
 		self.lock.release()
 
-	def pauseTask():
+	def pauseTask(self):
 		# 最后实现
 		return
