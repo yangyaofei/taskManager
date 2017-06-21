@@ -120,14 +120,15 @@ def startTasker(task_ID, SQL):
 	iterator = 0
 	progress = 1
 	for item in parse_IDs.get_raw(SQL,size=step):
-		if len(item[0]):
+		if len(item[0]) == 0:
 			logger.error("get IDs fail")
 			tasker.taskerToError(task_ID, item[1])
 			sys.exit(-1)
 
-		logger.info("get IDs over")
-		tasker.taskerLog(task_ID, "get IDs over")
-		tasker.TaskerToProcess(task_ID)
+		if progress == 1:
+			logger.info("get IDs over")
+			tasker.taskerLog(task_ID, "get IDs over")
+			tasker.TaskerToProcess(task_ID)
 
 		words_dict = {}
 		words_dict_title = {}  # 标题
@@ -143,6 +144,7 @@ def startTasker(task_ID, SQL):
 		# 进度显示
 		msg = "进度: " + str(progress) + "/ 共" + str(iterator)
 		tasker.taskerLog(task_ID, msg)
+		progress += 1
 
 		text = []
 		text_title = []  # 标题
@@ -150,13 +152,14 @@ def startTasker(task_ID, SQL):
 		text_claim = []  # 权利要求
 
 		for d in item[0]:
-			if d["alltext"] is not None and 0 != len(d.alltext):
+			d = d["_source"]
+			if d["alltext"] is not None and 0 != len(d["alltext"]):
 				text.append(d["alltext"])
-			if d["abstractcontent"] is not None and 0 != len(d.abstractcontent):
+			if d["abstractcontent"] is not None and 0 != len(d["abstractcontent"]):
 				text_abstract.append(d["abstractcontent"])
-			if d["name"] is not None and 0 != len(d.name):
+			if d["name"] is not None and 0 != len(d["name"]):
 				text_title.append(d["name"])
-			if d["right_require"] is not None and 0 != len(d.right_require):
+			if d["right_require"] is not None and 0 != len(d["right_require"]):
 				text_claim.append(d["right_require"])
 		for t in text:
 			t = tasker.removeNULL(t)
